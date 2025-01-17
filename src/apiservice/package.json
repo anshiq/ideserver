@@ -1,0 +1,23 @@
+{
+  "name": "apiservice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cp ../../proto/main.proto genproto/main.proto && ",
+    "start": "node index.js"
+
+
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "protobufjs": "^7.4.0"
+  }
+}
