@@ -30,7 +30,7 @@ proto.ideserver = require('./main_pb.js');
  * @struct
  * @final
  */
-proto.ideserver.GreeterClient =
+proto.ideserver.RunnerServiceClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options.format = 'text';
@@ -56,7 +56,7 @@ proto.ideserver.GreeterClient =
  * @struct
  * @final
  */
-proto.ideserver.GreeterPromiseClient =
+proto.ideserver.RunnerServicePromiseClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options.format = 'text';
@@ -77,122 +77,122 @@ proto.ideserver.GreeterPromiseClient =
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
- *   !proto.ideserver.HelloRequest,
- *   !proto.ideserver.HelloReply>}
+ *   !proto.ideserver.MakeContainerRequest,
+ *   !proto.ideserver.MakeContainerResponse>}
  */
-const methodDescriptor_Greeter_SayHello = new grpc.web.MethodDescriptor(
-  '/ideserver.Greeter/SayHello',
+const methodDescriptor_RunnerService_MakeContainer = new grpc.web.MethodDescriptor(
+  '/ideserver.RunnerService/MakeContainer',
   grpc.web.MethodType.UNARY,
-  proto.ideserver.HelloRequest,
-  proto.ideserver.HelloReply,
+  proto.ideserver.MakeContainerRequest,
+  proto.ideserver.MakeContainerResponse,
   /**
-   * @param {!proto.ideserver.HelloRequest} request
+   * @param {!proto.ideserver.MakeContainerRequest} request
    * @return {!Uint8Array}
    */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ideserver.HelloReply.deserializeBinary
+  proto.ideserver.MakeContainerResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ideserver.HelloRequest} request The
+ * @param {!proto.ideserver.MakeContainerRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.RpcError, ?proto.ideserver.HelloReply)}
+ * @param {function(?grpc.web.RpcError, ?proto.ideserver.MakeContainerResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ideserver.HelloReply>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ideserver.MakeContainerResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ideserver.GreeterClient.prototype.sayHello =
+proto.ideserver.RunnerServiceClient.prototype.makeContainer =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ideserver.Greeter/SayHello',
+      '/ideserver.RunnerService/MakeContainer',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHello,
+      methodDescriptor_RunnerService_MakeContainer,
       callback);
 };
 
 
 /**
- * @param {!proto.ideserver.HelloRequest} request The
+ * @param {!proto.ideserver.MakeContainerRequest} request The
  *     request proto
  * @param {?Object<string, string>=} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ideserver.HelloReply>}
+ * @return {!Promise<!proto.ideserver.MakeContainerResponse>}
  *     Promise that resolves to the response
  */
-proto.ideserver.GreeterPromiseClient.prototype.sayHello =
+proto.ideserver.RunnerServicePromiseClient.prototype.makeContainer =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ideserver.Greeter/SayHello',
+      '/ideserver.RunnerService/MakeContainer',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHello);
+      methodDescriptor_RunnerService_MakeContainer);
 };
 
 
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
- *   !proto.ideserver.HelloRequest,
- *   !proto.ideserver.HelloReply>}
+ *   !proto.ideserver.ConnectContainerRequest,
+ *   !proto.ideserver.ConnectContainerResponse>}
  */
-const methodDescriptor_Greeter_SayHelloAgain = new grpc.web.MethodDescriptor(
-  '/ideserver.Greeter/SayHelloAgain',
+const methodDescriptor_RunnerService_ConnectContainer = new grpc.web.MethodDescriptor(
+  '/ideserver.RunnerService/ConnectContainer',
   grpc.web.MethodType.UNARY,
-  proto.ideserver.HelloRequest,
-  proto.ideserver.HelloReply,
+  proto.ideserver.ConnectContainerRequest,
+  proto.ideserver.ConnectContainerResponse,
   /**
-   * @param {!proto.ideserver.HelloRequest} request
+   * @param {!proto.ideserver.ConnectContainerRequest} request
    * @return {!Uint8Array}
    */
   function(request) {
     return request.serializeBinary();
   },
-  proto.ideserver.HelloReply.deserializeBinary
+  proto.ideserver.ConnectContainerResponse.deserializeBinary
 );
 
 
 /**
- * @param {!proto.ideserver.HelloRequest} request The
+ * @param {!proto.ideserver.ConnectContainerRequest} request The
  *     request proto
  * @param {?Object<string, string>} metadata User defined
  *     call metadata
- * @param {function(?grpc.web.RpcError, ?proto.ideserver.HelloReply)}
+ * @param {function(?grpc.web.RpcError, ?proto.ideserver.ConnectContainerResponse)}
  *     callback The callback function(error, response)
- * @return {!grpc.web.ClientReadableStream<!proto.ideserver.HelloReply>|undefined}
+ * @return {!grpc.web.ClientReadableStream<!proto.ideserver.ConnectContainerResponse>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.ideserver.GreeterClient.prototype.sayHelloAgain =
+proto.ideserver.RunnerServiceClient.prototype.connectContainer =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/ideserver.Greeter/SayHelloAgain',
+      '/ideserver.RunnerService/ConnectContainer',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHelloAgain,
+      methodDescriptor_RunnerService_ConnectContainer,
       callback);
 };
 
 
 /**
- * @param {!proto.ideserver.HelloRequest} request The
+ * @param {!proto.ideserver.ConnectContainerRequest} request The
  *     request proto
  * @param {?Object<string, string>=} metadata User defined
  *     call metadata
- * @return {!Promise<!proto.ideserver.HelloReply>}
+ * @return {!Promise<!proto.ideserver.ConnectContainerResponse>}
  *     Promise that resolves to the response
  */
-proto.ideserver.GreeterPromiseClient.prototype.sayHelloAgain =
+proto.ideserver.RunnerServicePromiseClient.prototype.connectContainer =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/ideserver.Greeter/SayHelloAgain',
+      '/ideserver.RunnerService/ConnectContainer',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHelloAgain);
+      methodDescriptor_RunnerService_ConnectContainer);
 };
 
 

@@ -4,15 +4,27 @@ package ideserver;
 
 option go_package = ".";
 
-service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+service RunnerService {
+  rpc MakeContainer (MakeContainerRequest) returns (MakeContainerResponse) {}
+  rpc ConnectContainer (ConnectContainerRequest) returns (ConnectContainerResponse) {}
+}
+//for now on cpp and reactjs projects are awailable
+message MakeContainerRequest {
+  string stack = 1;
+  string userId = 2;
 }
 
-message HelloRequest {
-  string name = 1;
+message MakeContainerResponse {
+ int32  status = 1;
+ string msg = 2;
+  string err = 3;
 }
 
-message HelloReply {
-  string message = 1;
+message ConnectContainerRequest {
+  string containerid = 1;
+  string userId =2;
+}
+message ConnectContainerResponse {
+  string containerlink = 1;
+  string err = 2;
 }
