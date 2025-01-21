@@ -99,41 +99,41 @@ func (o *Orchestration) DeleteDeployment(deploymentName string) error {
 	return nil
 }
 
-func getDeploymentManifest(deploymentName string, environmentName string, imageDocker string, containerPort uint) (*appsv1.Deployment, error) {
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploymentName,
-			Namespace: "usercontainer",
-			Labels:    map[string]string{"name": deploymentName},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": environmentName},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": environmentName},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
-						{
-							Name:  deploymentName + "-container",
-							Image: imageDocker,
-							Ports: []apiv1.ContainerPort{{
-								ContainerPort: int32(containerPort),
-								// HostIP:        deploymentName + ".myapp.com",
-							}},
-						},
-					},
-					AutomountServiceAccountToken: returnFalseAddr(),
-					ServiceAccountName:           "dynamic-development-env",
-				},
-			},
-		},
-	}
-	return deployment, nil
-}
+// func getDeploymentManifest(deploymentName string, environmentName string, imageDocker string, containerPort uint) (*appsv1.Deployment, error) {
+// 	deployment := &appsv1.Deployment{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      deploymentName,
+// 			Namespace: "usercontainer",
+// 			Labels:    map[string]string{"name": deploymentName},
+// 		},
+// 		Spec: appsv1.DeploymentSpec{
+// 			Replicas: int32Ptr(1),
+// 			Selector: &metav1.LabelSelector{
+// 				MatchLabels: map[string]string{"app": environmentName},
+// 			},
+// 			Template: apiv1.PodTemplateSpec{
+// 				ObjectMeta: metav1.ObjectMeta{
+// 					Labels: map[string]string{"app": environmentName},
+// 				},
+// 				Spec: apiv1.PodSpec{
+// 					Containers: []apiv1.Container{
+// 						{
+// 							Name:  deploymentName + "-container",
+// 							Image: imageDocker,
+// 							Ports: []apiv1.ContainerPort{{
+// 								ContainerPort: int32(containerPort),
+// 								// HostIP:        deploymentName + ".myapp.com",
+// 							}},
+// 						},
+// 					},
+// 					AutomountServiceAccountToken: returnFalseAddr(),
+// 					ServiceAccountName:           "dynamic-development-env",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	return deployment, nil
+// }
 
 func returnFalseAddr() *bool {
 	k := false

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server-deployment
+  labels:
+    app: code-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      containers:
+      - name: code-server
+        image: docker_file_image
+        args: ["--bind-addr", "0.0.0.0:8080", "--auth", "none"]
+        ports:
+        - containerPort: 8080
+          name: code-server
+        - containerPort: 3000
+          name: react-port
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: code-server-volume
+          mountPath: /home/vscode/code
+      volumes:
+      - name: code-server-volume
+        hostPath:
+          path: /k8svolume
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server-service
+spec:
+  type: NodePort  # Change to LoadBalancer for cloud environments
+  selector:
+    app: code-server
+  ports:
+  - name: code-server
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: react-port
+    protocol: TCP
+    port: 3000
+    targetPort: 3000

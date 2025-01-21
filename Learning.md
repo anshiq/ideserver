@@ -86,8 +86,10 @@ lets say we mount /host:/home/image/code in container, before mounting if code f
 now lets say we have to transfer some files to this mounted folder check docker file in supportedImages folder, we create transfer these imp files to other folder while creating image, and when we create image to container using a mount we add a script at ENTRYPOINT which does all file transfer be running main executable like code-server
 some times host folder don't give permission to write then on the host terminal we can chmod +777 on that mounted folder.
 
-
- 
+### local keypoint 
+sudo chown -R $USER:$USER ./inimg/
+sudo chmod -R +777 ./host/path/ 
+both command run in host environment 
 
 # Golang
 *(To be filled)*
