@@ -8,6 +8,5 @@ RUN echo "vscode ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 COPY --chown=vscode:vscode ./code /home/temp_code/
 COPY --chown=root:root entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-# Set working directory
 WORKDIR /home/vscode
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

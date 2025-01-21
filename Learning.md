@@ -70,6 +70,25 @@ Provisioning_Types: i) Static Provisioning ii) Dynamic Provisioning
 
 ---
 
+# Docker
+### Commands in docker file
+FROM is used to select a default existing image to start from.
+USER root to select root as user in docker file.
+RUN is used to execute commands in image before building image from dockerfile
+eg: RUN useradd -m -u 1001 -d /home/vscode -s /bin/bash vscode
+RUN echo "vscode ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+is command used to create a user vscode in docker image, and give all sudoer permissions
+ENTRYPOINT is last point of image at which we define what proccess this container used for to execute.
+
+if we mount a volume to container just before ENTRYPOINT the volume is mounted,
+
+lets say we mount /host:/home/image/code in container, before mounting if code folder already exists in image code, after mounting it is overwritten by the folder present in dist of host,
+now lets say we have to transfer some files to this mounted folder check docker file in supportedImages folder, we create transfer these imp files to other folder while creating image, and when we create image to container using a mount we add a script at ENTRYPOINT which does all file transfer be running main executable like code-server
+some times host folder don't give permission to write then on the host terminal we can chmod +777 on that mounted folder.
+
+
+ 
+
 # Golang
 *(To be filled)*
 
