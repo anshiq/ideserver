@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Initial styling */
+.transition-top {
+  transition: top 1s ease; /* You can adjust the duration and easing function as needed */
+}
