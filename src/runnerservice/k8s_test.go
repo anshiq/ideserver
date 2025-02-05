@@ -9,6 +9,74 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var vite_config = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  labels:
+    app: code-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      containers:
+        - name: vite-react-container
+          image: anshik12/ideserver:vite_react_app
+          command: 
+            - code-server
+          args:
+            - --bind-addr
+            - 0.0.0.0:8080
+            - --auth
+            - none
+            - /home/vscode/code
+            - --disable-telemetry
+          ports:
+            - containerPort: 8080
+              name: code-server
+            - containerPort: 3000
+              name: react-port
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: code-server-volume
+              mountPath: /home/vscode/code
+      volumes:
+        - name: code-server-volume
+          hostPath:
+            path: /home/anshik/k8svolume
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server-service
+spec:
+  type: NodePort
+  selector:
+    app: code-server
+  ports:
+    - name: code-server
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    - name: react-port
+      protocol: TCP
+      port: 3000
+      targetPort: 3000`
+
 // TestNewOrchestration tests the NewOrchestration function.
 func TestNewOrchestration(t *testing.T) {
 	_, err := NewOrchestration()
@@ -26,7 +94,7 @@ func TestCreateDeployment(t *testing.T) {
 			Name: "test-deployment",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			// Replicas: int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": "test"},
 			},
@@ -61,6 +129,22 @@ func TestCreateDeployment(t *testing.T) {
 	if createdDeployment.Name != "test-deployment" {
 		t.Errorf("Expected deployment name 'test-deployment', got '%s'", createdDeployment.Name)
 	}
+}
+func TestEveryThing(t *testing.T) {
+	orr, err := NewOrchestration()
+	if err != nil {
+		t.Errorf("orchestration failed to connect")
+	}
+	depManfaist, errr := getDeploymentManifest(vite_config)
+	if errr != nil {
+		t.Errorf(err.Error() + " yaml string is not correct")
+
+	}
+	err = orr.CreateDeployment(depManfaist)
+	if err != nil {
+		t.Errorf("failed to create deployment from mainfest " + err.Error())
+	}
+
 }
 
 // int32Ptr is a helper function to return a pointer to an int32 value.

@@ -1,5 +1,4 @@
-
-import { User } from "../models/userSchema";
+const { User } = require("../models/userSchema");
 const getUserDetails = async (req, res) => {
   try {
     const data = await User.findById(req.userId);
@@ -17,4 +16,4 @@ const getUserDetails = async (req, res) => {
     res.json({ success: false, data: { msg: JSON.stringify({ err: error }) } });
   }
 };
-export { getUserDetails };
+module.exports =  { getUserDetails };

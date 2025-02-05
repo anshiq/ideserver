@@ -1,12 +1,12 @@
 
-import { User } from "../models/userSchema";
-import {
+const { User } = require("../models/userSchema");
+const {
   comparePassword,
   createJwt,
   generateVerificationToken,
   hashPassword,
   sendVerificationEmail,
-} from "../Others/AuthFuntions";
+} = require("../Others/AuthFuntions");
 async function signupUser(req, res) {
   try {
     const { name, email, password, mobile } = req.body;
@@ -31,7 +31,7 @@ async function signupUser(req, res) {
       verified: false,
     });
     if (data) {
-      const verificationLink = `${process.env.weburl}/user/verify-email?token=${token}`;
+      const verificationLink = `${process.env.FRONTEND_URL}/user/verify-email?token=${token}`;
       const mailoptions = {
         to: data.email,
         subject: "Email Verification",
@@ -134,7 +134,7 @@ async function forgotPassword(req, res) {
       user.verifyToken = token;
       console.log(token);
       user.save();
-      const verificationLink = `${process.env.weburl}/user/reset-password?token=${token}`;
+      const verificationLink = `${process.env.FRONTEND_URL}/user/reset-password?token=${token}`;
       const mailoptions = {
         to: user.email,
         subject: "Reset password",
@@ -156,7 +156,7 @@ async function forgotPassword(req, res) {
     console.log(error);
   }
 }
-export {
+module.exports =  {
   signupUser,
   forgotPassword,
   loginUser,

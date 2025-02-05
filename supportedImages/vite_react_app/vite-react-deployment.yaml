@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: 
+  name: code-server
   labels:
-    app: 
+    app: code-server
 spec:
   replicas: 1
   selector:
@@ -14,19 +14,23 @@ spec:
       labels:
         app: code-server
     spec:
+      volumes:
+        - name: code-server-volume
+          hostPath:
+            path: /home/anshik/k8svolume
+            type: DirectoryOrCreate
       containers:
-        - name: vite_react_container
-          image: "anshik12/ideserver:vite_react_app"
+        - name: vite-react-container
+          image: anshik12/ideserver:vite_react_app
+          command:
+            - code-server
           args:
-            [
-              "--bind-addr",
-              "0.0.0.0:8080",
-              "--auth",
-              "none",
-              "/home/vscode/code",
-              "--disable-telemetry",
-              "/home/vscode/code",
-            ]
+            - --bind-addr
+            - 0.0.0.0:8080
+            - --auth
+            - none
+            - /home/vscode/code
+            - --disable-telemetry
           ports:
             - containerPort: 8080
               name: code-server
@@ -42,18 +46,14 @@ spec:
           volumeMounts:
             - name: code-server-volume
               mountPath: /home/vscode/code
-      volumes:
-        - name: code-server-volume
-          hostPath:
-            path: /k8svolume
-            type: DirectoryOrCreate
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: code-server-service
 spec:
-  type: NodePort # Change to LoadBalancer for cloud environments
+  type: NodePort
   selector:
     app: code-server
   ports:

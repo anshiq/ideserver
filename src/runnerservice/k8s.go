@@ -10,6 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -75,7 +76,7 @@ func (o *Orchestration) UpdateDeployment(deploymentName string) error {
 			return fmt.Errorf("Failed to get latest version of Deployment: %v", getErr)
 		}
 
-		result.Spec.Replicas = int32Ptr(1)                           // reduce replica count
+		// result.Spec.Replicas =&int32(1)                           // reduce replica count
 		result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
 		_, updateErr := deploymentsClient.Update(context.TODO(), result, metav1.UpdateOptions{})
 
@@ -99,41 +100,20 @@ func (o *Orchestration) DeleteDeployment(deploymentName string) error {
 	return nil
 }
 
-// func getDeploymentManifest(deploymentName string, environmentName string, imageDocker string, containerPort uint) (*appsv1.Deployment, error) {
-// 	deployment := &appsv1.Deployment{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      deploymentName,
-// 			Namespace: "usercontainer",
-// 			Labels:    map[string]string{"name": deploymentName},
-// 		},
-// 		Spec: appsv1.DeploymentSpec{
-// 			Replicas: int32Ptr(1),
-// 			Selector: &metav1.LabelSelector{
-// 				MatchLabels: map[string]string{"app": environmentName},
-// 			},
-// 			Template: apiv1.PodTemplateSpec{
-// 				ObjectMeta: metav1.ObjectMeta{
-// 					Labels: map[string]string{"app": environmentName},
-// 				},
-// 				Spec: apiv1.PodSpec{
-// 					Containers: []apiv1.Container{
-// 						{
-// 							Name:  deploymentName + "-container",
-// 							Image: imageDocker,
-// 							Ports: []apiv1.ContainerPort{{
-// 								ContainerPort: int32(containerPort),
-// 								// HostIP:        deploymentName + ".myapp.com",
-// 							}},
-// 						},
-// 					},
-// 					AutomountServiceAccountToken: returnFalseAddr(),
-// 					ServiceAccountName:           "dynamic-development-env",
-// 				},
-// 			},
-// 		},
-// 	}
-// 	return deployment, nil
-// }
+func getDeploymentManifest(deploymentString string) (*appsv1.Deployment, error) {
+	deployment := &appsv1.Deployment{}
+	err := yaml.Unmarshal([]byte(deploymentString), deployment)
+	if err != nil {
+		return nil, err
+	}
+	securityContext := &apiv1.PodSecurityContext{
+		RunAsUser:  int64Ptr(1001),
+		RunAsGroup: int64Ptr(1001),
+	}
+	deployment.Spec.Template.Spec.SecurityContext = securityContext
+	deployment.Spec.Template.Spec.AutomountServiceAccountToken = returnFalseAddr()
+	return deployment, nil
+}
 
 func returnFalseAddr() *bool {
 	k := false
@@ -141,5 +121,9 @@ func returnFalseAddr() *bool {
 }
 
 func int32Ptr(i int32) *int32 {
+	return &i
+}
+
+func int64Ptr(i int64) *int64 {
 	return &i
 }

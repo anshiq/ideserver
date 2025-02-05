@@ -1,5 +1,5 @@
-import { Router } from "express";
-import { getUserDetails } from "../controller/authedController";
+const { Router } = require("express");
+const { getUserDetails } = require("../controller/authedController")
 const authRouter = Router();
 authRouter.route("/api").get(getUserDetails);
-export { authRouter };
+module.exports= { authRouter };

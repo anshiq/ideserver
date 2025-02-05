@@ -1,18 +1,18 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
-import crypto from "crypto";
+const bcrypt = require( "bcrypt");
+const jwt = require( "jsonwebtoken");
+const nodemailer = require( "nodemailer");
+const crypto = require( "crypto");
+require("dotenv").config()
 const saltRounds = parseInt(process.env.SALTROUNDS , 10) || 10;
-// const jwtSecret = process.env.JWTSECRET || "";
-const jwtSecret = "secret";
+const jwtSecret = process.env.JWTSECRET || "";
 const transporter = nodemailer.createTransport({
   service: "gmail",
   host: "smtp.gmail.com",
   port: 465,
   secure: true,
   auth: {
-    user: "anshikthind@gmail.com",
-    pass: "pnff bbip tzwr kinx",
+    user: process.env.EMAIL_SERVICE_MAIL|| "", 
+    pass: process.env.EMAIL_SERVICE_PASS || "",
   },
 });
 const hashPassword = async (password) => {
@@ -60,7 +60,7 @@ const sendVerificationEmail = ( mailOptionsObject) => {
 const generateVerificationToken = () => {
   return crypto.randomBytes(32).toString("hex");
 };
-export {
+module.exports =  {
   generateVerificationToken,
   hashPassword,
   comparePassword,
