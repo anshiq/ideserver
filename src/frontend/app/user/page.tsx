@@ -1,9 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { ForgotPassword, Login, SignUp } from "./components/Users";
+import { useSearchParams } from "next/navigation";
 
-export default function Page(props: any) {
-  const lang: string | null = props.searchParams?.type || null;
+function Page() {
+  const lang: string | null = useSearchParams().get("type") || null;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const anshik = 44;
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
@@ -13,7 +17,7 @@ export default function Page(props: any) {
   );
 }
 
-function Form({ type }: any) {
+function Form({ type }) {
   const [toggleType, setToggleType] = useState(type);
   return (
     <>
@@ -47,6 +51,16 @@ function Form({ type }: any) {
         <>{toggleType === "1" && <SignUp />}</>
         <>{toggleType === "2" && <ForgotPassword />}</>
       </div>
+    </>
+  );
+}
+
+export default function page() {
+  return (
+    <>
+      <Suspense>
+        <Page />
+      </Suspense>
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { axiosFetchAuth } from "@/lib/axiosConfig";
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 function Navbar() {
@@ -19,7 +20,7 @@ function Navbar() {
     }
   }, []);
 
-  const User = ({ data }: any) => {
+  const User = ({ data }) => {
     // console.log(data);
     return (
       <button className="text-white p-2 rounded-md bg-gray-900">
@@ -49,13 +50,13 @@ function Navbar() {
           <ul className="flex mob:space-x-4 mob:gap-0 gap-2 items-center justify-center flex-col mob:flex-row ">
             <li className="text-white">Contact</li>
             <li onClick={() => setToggleNav(!toggleNav)} className="text-white">
-              {!user ? <a href="/user?type=0">Login</a> : <User data={user} />}
+              {!user ? <Link href="/user?type=0">Login</Link> : <User data={user} />}
             </li>
             <li onClick={() => setToggleNav(!toggleNav)} className="text-white">
               {!user ? (
-                <a href="/user?type=1" className="hover:underline">
+                <Link href="/user?type=1" className="hover:underline">
                   Signup{" "}
-                </a>
+                </Link>
               ) : (
                 <button
                   onClick={() => {

@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import { axiosFetch } from "@/lib/axiosConfig";
 import { showNotification } from "@/lib/Notification";
-function page(props: any) {
+function page(props) {
   const tokenType = props.params.token || "";
   const token = props.searchParams.token || "";
   if (tokenType === "reset-password") {
@@ -16,7 +16,7 @@ function page(props: any) {
     );
   }
 }
-const VerifyEmail = async ({ token }: any) => {
+const VerifyEmail = async ({ token }) => {
   const data = await axiosFetch.post(
     "/user/verify-user",
     {
@@ -31,7 +31,7 @@ const VerifyEmail = async ({ token }: any) => {
   const msg = data.data.data.msg;
   return <>{msg}</>;
 };
-const ResetPassword = ({ token }: any) => {
+const ResetPassword = ({ token }) => {
   const [password, setPassword] = useState({
     password: "",
     re_password: "",

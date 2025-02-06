@@ -1,4 +1,4 @@
-function showNotification({ text, color }: any) {
+function showNotification({ text, color }) {
   const notification = document.getElementById("notification");
   if (!notification) {
     return;
