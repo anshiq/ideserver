@@ -20,10 +20,8 @@ func (s *RunnerService) CreateContainer(ctx context.Context, req IDESERVER.MakeC
 
 func (s *RunnerService) ConnectUserContainer(ctx context.Context, req IDESERVER.ConnectContainerRequest) (*IDESERVER.ConnectContainerResponse, error) {
 	x := req.GetContainerid()
-	y := req.GetUserId()
-	fmt.Print(x, y)
+	fmt.Print(x)
 	return &IDESERVER.ConnectContainerResponse{
-		Containerlink: "htthpp",
-		Err:           "",
+		PodDns: "htthpp",
 	}, nil
 }

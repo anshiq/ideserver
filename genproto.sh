@@ -5,11 +5,13 @@ mkdir -p src/apiservice/genproto
 mkdir -p src/runnerservice/genproto
 
 # Generate JavaScript code with gRPC
-protoc \
-    --proto_path=protos \
-    --js_out=import_style=commonjs,binary:src/apiservice/genproto \
-    --grpc-web_out=import_style=commonjs,mode=grpcwebtext:src/apiservice/genproto \
-    protos/main.proto
+# protoc \
+#     --proto_path=protos \
+#     --js_out=import_style=commonjs,binary:src/apiservice/genproto \
+#     --grpc-web_out=import_style=commonjs,mode=grpcwebtext:src/apiservice/genproto \
+#     protos/main.proto
+
+cp ./protos/main.proto ./src/apiservice/genproto
 
 # Generate Go code with gRPC
 protoc \

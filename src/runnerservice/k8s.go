@@ -55,8 +55,10 @@ func (o *Orchestration) CreateDeployment(deployment *appsv1.Deployment) error {
 		return errors.New("deployment object cannot be nil")
 	}
 
+	namespaceClient := o.ClientSet.CoreV1().Namespaces()
 	deploymentClient := o.ClientSet.AppsV1().Deployments(apiv1.NamespaceDefault)
-	fmt.Println("Creating deployment...")
+	serviceClient := o.ClientSet.CoreV1().Services(apiv1.NamespaceDefault)
+	fmt.Println("Creating deployment...", namespaceClient, deploymentClient, serviceClient)
 
 	result, err := deploymentClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
 	if err != nil {
@@ -102,6 +104,9 @@ func (o *Orchestration) DeleteDeployment(deploymentName string) error {
 
 func getDeploymentManifest(deploymentString string) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{}
+	namespace := &apiv1.Namespace{}
+	service := &apiv1.Service{}
+	fmt.Print(namespace, service)
 	err := yaml.Unmarshal([]byte(deploymentString), deployment)
 	if err != nil {
 		return nil, err
