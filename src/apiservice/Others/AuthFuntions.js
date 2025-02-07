@@ -38,9 +38,9 @@ const createJwt = (id) => {
   const token = jwt.sign(
     { _id: id },
     jwtSecret,
-    //    {
-    //   expiresIn: "24h",
-    // }
+       {
+      expiresIn: "7h",
+    }
   );
   return token;
 };
@@ -63,7 +63,7 @@ const generateVerificationToken = () => {
 module.exports =  {
   generateVerificationToken,
   hashPassword,
-  comparePassword,
+  comparePassword, 
   createJwt,
   sendVerificationEmail,
 };

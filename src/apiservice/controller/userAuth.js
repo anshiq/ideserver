@@ -56,7 +56,7 @@ async function loginUser(req, res) {
     if (data) {
       const isUser = await comparePassword(password, data.password);
       if (isUser) {
-        const token = jwt.sign({ _id: data._id.toString() }, jwtSecret, { expiresIn: "7d" });
+        const token = createJwt(data._id.toString());
         
         res.cookie("token", token, {
           httpOnly: true,
