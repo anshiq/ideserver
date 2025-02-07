@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunnerService_MakeContainer_FullMethodName    = "/ideserver.RunnerService/MakeContainer"
-	RunnerService_ConnectContainer_FullMethodName = "/ideserver.RunnerService/ConnectContainer"
+	RunnerService_MakeContainer_FullMethodName   = "/ideserver.RunnerService/MakeContainer"
+	RunnerService_GetContainerDns_FullMethodName = "/ideserver.RunnerService/getContainerDns"
+	RunnerService_DeleteContainer_FullMethodName = "/ideserver.RunnerService/deleteContainer"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -28,7 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RunnerServiceClient interface {
 	MakeContainer(ctx context.Context, in *MakeContainerRequest, opts ...grpc.CallOption) (*MakeContainerResponse, error)
-	ConnectContainer(ctx context.Context, in *ConnectContainerRequest, opts ...grpc.CallOption) (*ConnectContainerResponse, error)
+	GetContainerDns(ctx context.Context, in *ConnectContainerRequest, opts ...grpc.CallOption) (*ConnectContainerResponse, error)
+	DeleteContainer(ctx context.Context, in *DeleteContainerRequest, opts ...grpc.CallOption) (*DeleteContainerResponse, error)
 }
 
 type runnerServiceClient struct {
@@ -49,10 +51,20 @@ func (c *runnerServiceClient) MakeContainer(ctx context.Context, in *MakeContain
 	return out, nil
 }
 
-func (c *runnerServiceClient) ConnectContainer(ctx context.Context, in *ConnectContainerRequest, opts ...grpc.CallOption) (*ConnectContainerResponse, error) {
+func (c *runnerServiceClient) GetContainerDns(ctx context.Context, in *ConnectContainerRequest, opts ...grpc.CallOption) (*ConnectContainerResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConnectContainerResponse)
-	err := c.cc.Invoke(ctx, RunnerService_ConnectContainer_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RunnerService_GetContainerDns_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runnerServiceClient) DeleteContainer(ctx context.Context, in *DeleteContainerRequest, opts ...grpc.CallOption) (*DeleteContainerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteContainerResponse)
+	err := c.cc.Invoke(ctx, RunnerService_DeleteContainer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +76,8 @@ func (c *runnerServiceClient) ConnectContainer(ctx context.Context, in *ConnectC
 // for forward compatibility.
 type RunnerServiceServer interface {
 	MakeContainer(context.Context, *MakeContainerRequest) (*MakeContainerResponse, error)
-	ConnectContainer(context.Context, *ConnectContainerRequest) (*ConnectContainerResponse, error)
+	GetContainerDns(context.Context, *ConnectContainerRequest) (*ConnectContainerResponse, error)
+	DeleteContainer(context.Context, *DeleteContainerRequest) (*DeleteContainerResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
 
@@ -78,8 +91,11 @@ type UnimplementedRunnerServiceServer struct{}
 func (UnimplementedRunnerServiceServer) MakeContainer(context.Context, *MakeContainerRequest) (*MakeContainerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MakeContainer not implemented")
 }
-func (UnimplementedRunnerServiceServer) ConnectContainer(context.Context, *ConnectContainerRequest) (*ConnectContainerResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ConnectContainer not implemented")
+func (UnimplementedRunnerServiceServer) GetContainerDns(context.Context, *ConnectContainerRequest) (*ConnectContainerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContainerDns not implemented")
+}
+func (UnimplementedRunnerServiceServer) DeleteContainer(context.Context, *DeleteContainerRequest) (*DeleteContainerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteContainer not implemented")
 }
 func (UnimplementedRunnerServiceServer) mustEmbedUnimplementedRunnerServiceServer() {}
 func (UnimplementedRunnerServiceServer) testEmbeddedByValue()                       {}
@@ -120,20 +136,38 @@ func _RunnerService_MakeContainer_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RunnerService_ConnectContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RunnerService_GetContainerDns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConnectContainerRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RunnerServiceServer).ConnectContainer(ctx, in)
+		return srv.(RunnerServiceServer).GetContainerDns(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RunnerService_ConnectContainer_FullMethodName,
+		FullMethod: RunnerService_GetContainerDns_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunnerServiceServer).ConnectContainer(ctx, req.(*ConnectContainerRequest))
+		return srv.(RunnerServiceServer).GetContainerDns(ctx, req.(*ConnectContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunnerService_DeleteContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).DeleteContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_DeleteContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).DeleteContainer(ctx, req.(*DeleteContainerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -150,8 +184,12 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RunnerService_MakeContainer_Handler,
 		},
 		{
-			MethodName: "ConnectContainer",
-			Handler:    _RunnerService_ConnectContainer_Handler,
+			MethodName: "getContainerDns",
+			Handler:    _RunnerService_GetContainerDns_Handler,
+		},
+		{
+			MethodName: "deleteContainer",
+			Handler:    _RunnerService_DeleteContainer_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

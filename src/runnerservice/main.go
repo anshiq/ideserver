@@ -19,7 +19,8 @@ func main() {
 		panic(err)
 	}
 	fmt.Print(orc)
-
+	ActivePods.Add("anshik", "http://spiritualsun.info")
+	ActivePods.Add("sarb", "https://sidhu-moosewala1.blogspot.com/2025/02/physics-pdf.html")
 	listner, err := net.Listen("tcp", ":4040")
 	if err != nil {
 		panic(err)
