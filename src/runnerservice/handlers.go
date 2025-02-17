@@ -10,9 +10,12 @@ import (
 
 var ActivePods = hostiptopodmap.NewActivePods()
 
-func (s *RunnerService) CreateContainer(ctx context.Context, req IDESERVER.MakeContainerRequest) (*IDESERVER.MakeContainerResponse, error) {
+func (s *RunnerService) MakeContainer(ctx context.Context, req *IDESERVER.MakeContainerRequest) (*IDESERVER.MakeContainerResponse, error) {
 	stack := req.GetTechStack()
 	hostName := req.GetHostname()
+	yamlCode := req.GetYamlFileCode()
+	fmt.Println(yamlCode)
+
 	// logic here
 	return &IDESERVER.MakeContainerResponse{
 		Msg: fmt.Sprintf("Container for stack %s has been create successfully!!! user for this action is %s ", stack, hostName),
@@ -20,14 +23,15 @@ func (s *RunnerService) CreateContainer(ctx context.Context, req IDESERVER.MakeC
 	}, nil
 }
 
-func (s *RunnerService) GetPodDnsFromMap(ctx context.Context, req IDESERVER.ConnectContainerRequest) (*IDESERVER.ConnectContainerResponse, error) {
+func (s *RunnerService) GetContainerDns(ctx context.Context, req *IDESERVER.ConnectContainerRequest) (*IDESERVER.ConnectContainerResponse, error) {
 	x := req.GetHostname()
-	fmt.Print(x)
+	dns := ActivePods.Get(x)
+	fmt.Println(x, dns)
 	return &IDESERVER.ConnectContainerResponse{
-		PodDns: "",
+		PodDns: dns,
 	}, nil
 }
-func (s *RunnerService) DeletePod(ctx context.Context, req IDESERVER.DeleteContainerRequest) (*IDESERVER.DeleteContainerResponse, error) {
+func (s *RunnerService) DeleteContainer(ctx context.Context, req *IDESERVER.DeleteContainerRequest) (*IDESERVER.DeleteContainerResponse, error) {
 	return &IDESERVER.DeleteContainerResponse{
 		Msg: "Container deleted successfully for hostname" + req.GetHostname(),
 		Err: "",

@@ -20,8 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RunnerService_MakeContainer_FullMethodName   = "/ideserver.RunnerService/MakeContainer"
-	RunnerService_GetContainerDns_FullMethodName = "/ideserver.RunnerService/getContainerDns"
-	RunnerService_DeleteContainer_FullMethodName = "/ideserver.RunnerService/deleteContainer"
+	RunnerService_GetContainerDns_FullMethodName = "/ideserver.RunnerService/GetContainerDns"
+	RunnerService_DeleteContainer_FullMethodName = "/ideserver.RunnerService/DeleteContainer"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -184,11 +184,11 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RunnerService_MakeContainer_Handler,
 		},
 		{
-			MethodName: "getContainerDns",
+			MethodName: "GetContainerDns",
 			Handler:    _RunnerService_GetContainerDns_Handler,
 		},
 		{
-			MethodName: "deleteContainer",
+			MethodName: "DeleteContainer",
 			Handler:    _RunnerService_DeleteContainer_Handler,
 		},
 	},

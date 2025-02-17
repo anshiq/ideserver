@@ -1,18 +1,23 @@
 require("dotenv").config();
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
-const path = require('path')
+const path = require("path");
 var PROTO_PATH = "../genproto/main.proto";
 const GRPC_HOST = process.env.GRPC_PORT || 8081;
+console.log("grpc host: " + GRPC_HOST);
 class AuthorService {
   constructor(grpcClient) {
     this.client = grpcClient;
   }
-  
-  MakeContainer = async (requestParams) => {
-    
+
+  makeContainer = async ({ stack, hostName, yamlCode }) => {
+    const requestParams = {
+      techStack: stack,
+      yamlFileCode: yamlCode,
+      hostname: hostName,
+    };
     return new Promise((resolve, reject) => {
-      this.client.MakeContainer(requestParams, (error, data) => {
+      this.client.makeContainer(requestParams, (error, data) => {
         if (error) {
           reject(error);
         } else {
@@ -21,11 +26,10 @@ class AuthorService {
       });
     });
   };
-  
-  
-  getContainerDns = async (id) => {
-    const requestParams = { author_id: id };
 
+  getContainerDns = async (id) => {
+    const requestParams = { hostname: id };
+    // console.log(this.client)
     return new Promise((resolve, reject) => {
       this.client.getContainerDns(requestParams, (error, data) => {
         if (error) {
@@ -50,10 +54,9 @@ class AuthorService {
       });
     });
   };
-
 }
 
-var packageDefinition = protoLoader.loadSync(path.join(__dirname,PROTO_PATH), {
+var packageDefinition = protoLoader.loadSync(path.join(__dirname, PROTO_PATH), {
   keepCase: true,
   longs: String,
   enums: String,

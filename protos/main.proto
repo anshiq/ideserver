@@ -6,14 +6,15 @@ option go_package = ".";
 
 service RunnerService {
   rpc MakeContainer (MakeContainerRequest) returns (MakeContainerResponse) {}
-  rpc getContainerDns (ConnectContainerRequest) returns (ConnectContainerResponse) {}
-  rpc deleteContainer (deleteContainerRequest) returns (deleteContainerResponse){}
+  rpc GetContainerDns (ConnectContainerRequest) returns (ConnectContainerResponse) {}
+  rpc DeleteContainer (deleteContainerRequest) returns (deleteContainerResponse){}
  // rpc updateContainerConfig() returns(){}
 }
 //for now on cpp and reactjs projects are awailable
 message MakeContainerRequest {
   string techStack = 1;
-  string hostname = 2;
+  string yamlFileCode = 2;
+  string hostname = 3;
 }
 
 message MakeContainerResponse {
