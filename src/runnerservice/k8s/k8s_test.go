@@ -116,7 +116,10 @@ spec:
 
 // TestCreateDeployment tests the CreateDeployment method.
 func TestCreateDeployment(t *testing.T) {
-	orch := NewOrchestration()
+	orch, err := NewOrchestration()
+	if err != nil {
+		t.Error(err.Error())
+	}
 	// Create a sample deployment object.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -144,7 +147,7 @@ func TestCreateDeployment(t *testing.T) {
 	}
 
 	// Call the CreateDeployment method.
-	err := orch.CreateDeployment(deployment)
+	err = orch.CreateDeployment(deployment)
 	if err != nil {
 		t.Errorf("CreateDeployment failed:")
 	}
@@ -160,16 +163,19 @@ func TestCreateDeployment(t *testing.T) {
 	}
 }
 func TestEveryThing(t *testing.T) {
-	orr := NewOrchestration()
+	orr, err := NewOrchestration()
+	if err != nil {
+		t.Error(err.Error())
+	}
 	fmt.Print(orr)
 
-	depManfaist, errr := getDeploymentManifest(vite_config, "new")
+	depManfaist, errr := orr.GetDeploymentManifest(vite_config, "react", "new")
 	if errr != nil {
 		t.Errorf(errr.Error() + " yaml string is not correct")
 
 	}
 	fmt.Print(depManfaist)
-	err := orr.CreateDeployment(depManfaist)
+	err = orr.CreateDeployment(depManfaist)
 	if err != nil {
 		t.Errorf("failed to create deployment from mainfest " + err.Error())
 	}

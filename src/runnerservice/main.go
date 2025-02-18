@@ -15,12 +15,15 @@ type RunnerService struct {
 	IDESERVER.UnimplementedRunnerServiceServer
 }
 
-var Orc = K8s.NewOrchestration()
+var Orc, err = K8s.NewOrchestration()
 var ActivePods = Hostiptopodmap.NewActivePods()
 
 func main() {
 	ActivePods.Add("anshik", "http://localhost:8082")
 	ActivePods.Add("sarb", "https://sidhu-moosewala1.blogspot.com/2025/02/physics-pdf.html")
+	if err != nil {
+		panic("err on k8s cofig" + err.Error())
+	}
 	listner, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)

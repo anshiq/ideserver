@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,22 +15,45 @@ spec:
       labels:
         app: code-server
     spec:
-      volumes:
-        - name: code-server-volume
-          hostPath:
-            path: /home/anshik/k8svolume
-            type: DirectoryOrCreate
+      initContainers:
+        - name: init-volume
+          image: busybox
+          command: ['sh', '-c']
+          args:
+            - |
+              chown -R 1001:1001 /workspace &&
+              chmod -R 777 /workspace
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            privileged: true
+          volumeMounts:
+            - name: code-server-volume
+              mountPath: /workspace
+        - name: init-code
+          image: anshik12/ideserver:vite_react_app
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+            - |
+              cp -rf /home/temp_code/* /workspace/ || true
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+          volumeMounts:
+            - name: code-server-volume
+              mountPath: /workspace
       containers:
         - name: vite-react-container
           image: anshik12/ideserver:vite_react_app
-          command:
-            - code-server
+          imagePullPolicy: Always
+          command: ["/usr/bin/code-server"]
           args:
             - --bind-addr
             - 0.0.0.0:8080
             - --auth
             - none
-            - /home/vscode/code
+            - /workspace
             - --disable-telemetry
           ports:
             - containerPort: 8080
@@ -45,8 +69,15 @@ spec:
               cpu: "1000m"
           volumeMounts:
             - name: code-server-volume
-              mountPath: /home/vscode/code
-
+              mountPath: /workspace
+          env:
+            - name: HOME
+              value: /home/vscode
+      volumes:
+        - name: code-server-volume
+          hostPath:
+            path: /home/anshik/k8svolume
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
@@ -61,7 +92,9 @@ spec:
       protocol: TCP
       port: 8080
       targetPort: 8080
+      nodePort: 30080
     - name: react-port
       protocol: TCP
       port: 3000
       targetPort: 3000
+      nodePort: 30300

@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -23,7 +24,7 @@ type Orchestration struct {
 	ClientSet *kubernetes.Clientset
 }
 
-func NewOrchestration() *Orchestration {
+func NewOrchestration() (*Orchestration, error) {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -34,22 +35,23 @@ func NewOrchestration() *Orchestration {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		fmt.Println("kubeconfig file not found, attempting in-cluster configuration...")
+		log.Printf("kubeconfig file not found, attempting in-cluster configuration: %v", err)
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			log.Panic("Failed to get k8s config incluster and kubeconfig file")
+			log.Fatalf("Failed to get k8s config in-cluster and kubeconfig file: %v", err)
+			return nil, err
 		}
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Panic("failed to create Kubernetes clientset: %w", err)
-		return nil
+		log.Fatalf("Failed to create Kubernetes clientset: %v", err)
+		return nil, err
 	}
 
 	return &Orchestration{
 		ClientSet: clientSet,
-	}
+	}, nil
 }
 
 func (o *Orchestration) CreateDeployment(deployment *appsv1.Deployment) error {
@@ -57,75 +59,191 @@ func (o *Orchestration) CreateDeployment(deployment *appsv1.Deployment) error {
 		return errors.New("deployment object cannot be nil")
 	}
 
-	namespaceClient := o.ClientSet.CoreV1().Namespaces()
+	if deployment.ObjectMeta.Name == "" {
+		return errors.New("deployment name cannot be empty")
+	}
+
 	deploymentClient := o.ClientSet.AppsV1().Deployments(apiv1.NamespaceDefault)
-	serviceClient := o.ClientSet.CoreV1().Services(apiv1.NamespaceDefault)
-	fmt.Println("Creating deployment...", namespaceClient, deploymentClient, serviceClient)
+	log.Printf("Creating deployment %q in namespace %q...", deployment.ObjectMeta.Name, apiv1.NamespaceDefault)
 
 	result, err := deploymentClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create deployment: %w", err)
+		return fmt.Errorf("failed to create deployment %q: %w", deployment.ObjectMeta.Name, err)
 	}
 
-	fmt.Printf("Successfully created deployment %q.\n", result.GetName())
+	log.Printf("Successfully created deployment %q.\n", result.GetName())
+	return nil
+}
+func (o *Orchestration) CreateService(service *apiv1.Service) error {
+	if service == nil {
+		return errors.New("service object cannot be nil")
+	}
+
+	if service.ObjectMeta.Name == "" {
+		return errors.New("service name cannot be empty")
+	}
+
+	serviceClient := o.ClientSet.CoreV1().Services(apiv1.NamespaceDefault)
+	log.Printf("Creating service %q in namespace %q...", service.ObjectMeta.Name, apiv1.NamespaceDefault)
+
+	result, err := serviceClient.Create(context.TODO(), service, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create service %q: %w", service.ObjectMeta.Name, err)
+	}
+
+	log.Printf("Successfully created service %q.\n", result.GetName())
 	return nil
 }
 
-func (o *Orchestration) UpdateDeployment(deploymentName string) error {
+func (o *Orchestration) UpdateDeployment(deploymentuniqueId string, ports []int32) error {
+	if deploymentuniqueId == "" {
+		return errors.New("deployment ID cannot be empty")
+	}
+
+	if len(ports) == 0 {
+		return errors.New("ports cannot be empty")
+	}
+
 	deploymentsClient := o.ClientSet.AppsV1().Deployments(apiv1.NamespaceDefault)
-	fmt.Println("updating deployment...")
+	log.Printf("Updating deployment %q in namespace %q...", deploymentuniqueId, apiv1.NamespaceDefault)
+
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		result, getErr := deploymentsClient.Get(context.TODO(), deploymentName, metav1.GetOptions{})
+		result, getErr := deploymentsClient.Get(context.TODO(), deploymentuniqueId, metav1.GetOptions{})
 		if getErr != nil {
-			return fmt.Errorf("Failed to get latest version of Deployment: %v", getErr)
+			return fmt.Errorf("failed to get latest version of Deployment %q: %v", deploymentuniqueId, getErr)
 		}
 
-		// result.Spec.Replicas =&int32(1)                           // reduce replica count
-		result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
-		_, updateErr := deploymentsClient.Update(context.TODO(), result, metav1.UpdateOptions{})
+		for _, port := range ports {
+			result.Spec.Template.Spec.Containers[0].Ports = append(result.Spec.Template.Spec.Containers[0].Ports, apiv1.ContainerPort{ContainerPort: port})
+		}
 
+		_, updateErr := deploymentsClient.Update(context.TODO(), result, metav1.UpdateOptions{})
 		return updateErr
 	})
+
 	if retryErr != nil {
-		return retryErr
+		return fmt.Errorf("failed to update deployment %q: %w", deploymentuniqueId, retryErr)
 	}
-	fmt.Println("Updated deployment...")
+
+	log.Printf("Successfully updated deployment %q.\n", deploymentuniqueId)
+	return nil
+}
+func (o *Orchestration) UpdateService(serviceuniqueId string, ports []int32) error {
+	if serviceuniqueId == "" {
+		return errors.New("service ID cannot be empty")
+	}
+	if len(ports) == 0 {
+		return errors.New("ports cannot be empty")
+	}
+
+	serviceClient := o.ClientSet.CoreV1().Services(apiv1.NamespaceDefault)
+	log.Printf("Updating service %q in namespace %q...", serviceuniqueId, apiv1.NamespaceDefault)
+
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		result, getErr := serviceClient.Get(context.TODO(), serviceuniqueId, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get latest version of Service %q: %v", serviceuniqueId, getErr)
+		}
+
+		for _, port := range ports {
+
+			result.Spec.Ports = append(result.Spec.Ports, apiv1.ServicePort{
+				TargetPort: intstr.FromInt32(port),
+				Protocol:   apiv1.ProtocolTCP,
+			})
+		}
+
+		_, updateErr := serviceClient.Update(context.TODO(), result, metav1.UpdateOptions{})
+		return updateErr
+	})
+
+	if retryErr != nil {
+		return fmt.Errorf("failed to update service %q: %w", serviceuniqueId, retryErr)
+	}
+
+	log.Printf("Successfully updated service %q.\n", serviceuniqueId)
 	return nil
 }
 
-func (o *Orchestration) DeleteDeployment(deploymentName string) error {
+func (o *Orchestration) DeleteDeployment(deploymentuniqueId string) error {
+	if deploymentuniqueId == "" {
+		return errors.New("deployment ID cannot be empty")
+	}
+
 	deploymentsClient := o.ClientSet.AppsV1().Deployments(apiv1.NamespaceDefault)
 	deletePolicy := metav1.DeletePropagationForeground
-	if err := deploymentsClient.Delete(context.TODO(), deploymentName, metav1.DeleteOptions{
+	log.Printf("Deleting deployment %q in namespace %q...", deploymentuniqueId, apiv1.NamespaceDefault)
+
+	if err := deploymentsClient.Delete(context.TODO(), deploymentuniqueId, metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}); err != nil {
-		return err
+		return fmt.Errorf("failed to delete deployment %q: %w", deploymentuniqueId, err)
 	}
+
+	log.Printf("Successfully deleted deployment %q.\n", deploymentuniqueId)
 	return nil
 }
-func getServiceManifest(serviceString string, serviceuniqueId string) (*apiv1.Service, error) {
+
+func (o *Orchestration) DeleteService(serviceuniqueId string) error {
+	if serviceuniqueId == "" {
+		return errors.New("service ID cannot be empty")
+	}
+
+	serviceClient := o.ClientSet.CoreV1().Services(apiv1.NamespaceDefault)
+	deletePolicy := metav1.DeletePropagationForeground
+	log.Printf("Deleting service %q in namespace %q...", serviceuniqueId, apiv1.NamespaceDefault)
+
+	if err := serviceClient.Delete(context.TODO(), serviceuniqueId, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}); err != nil {
+		return fmt.Errorf("failed to delete service %q: %w", serviceuniqueId, err)
+	}
+
+	log.Printf("Successfully deleted service %q.\n", serviceuniqueId)
+	return nil
+}
+func (o *Orchestration) GetServiceManifest(serviceString string, stack string, serviceuniqueId string) (*apiv1.Service, error) {
+	if serviceString == "" {
+		return nil, errors.New("service manifest string cannot be empty")
+	}
+
+	if serviceuniqueId == "" {
+		return nil, errors.New("service unique ID cannot be empty")
+	}
+
 	service := &apiv1.Service{}
-	err := yaml.Unmarshal([]byte(serviceString), service)
+	if err := yaml.Unmarshal([]byte(serviceString), service); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal service manifest: %w", err)
+	}
+
 	service.ObjectMeta.Name = serviceuniqueId
 	service.Spec.Selector = map[string]string{
-		"app": serviceuniqueId,
+		"app":   serviceuniqueId,
+		"stack": stack,
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	return service, nil
 }
-func getDeploymentManifest(deploymentString string, deploymentuniqueId string) (*appsv1.Deployment, error) {
-	deployment := &appsv1.Deployment{}
 
-	err := yaml.Unmarshal([]byte(deploymentString), deployment)
-	if err != nil {
-		return nil, err
+func (o *Orchestration) GetDeploymentManifest(deploymentString string, stack string, deploymentuniqueId string) (*appsv1.Deployment, error) {
+	if deploymentString == "" {
+		return nil, errors.New("deployment manifest string cannot be empty")
 	}
+
+	if deploymentuniqueId == "" {
+		return nil, errors.New("deployment unique ID cannot be empty")
+	}
+
+	deployment := &appsv1.Deployment{}
+	if err := yaml.Unmarshal([]byte(deploymentString), deployment); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal deployment manifest: %w", err)
+	}
+
 	deployment.ObjectMeta.Name = deploymentuniqueId
 	deployment.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app": deploymentuniqueId,
+			"app":   deploymentuniqueId,
+			"stact": stack,
 		},
 	}
 
