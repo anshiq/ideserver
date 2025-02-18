@@ -5,10 +5,7 @@ import (
 	"fmt"
 
 	IDESERVER "github.com/anshiq/ideserver/src/runnerservice/genproto"
-	hostiptopodmap "github.com/anshiq/ideserver/src/runnerservice/hostiptopodMap"
 )
-
-var ActivePods = hostiptopodmap.NewActivePods()
 
 func (s *RunnerService) MakeContainer(ctx context.Context, req *IDESERVER.MakeContainerRequest) (*IDESERVER.MakeContainerResponse, error) {
 	stack := req.GetTechStack()

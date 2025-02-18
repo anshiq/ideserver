@@ -1,7 +1,8 @@
-package main
+package k8s
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -26,17 +27,45 @@ spec:
       labels:
         app: code-server
     spec:
+      initContainers:
+        - name: init-volume
+          image: busybox
+          command: ['sh', '-c']
+          args:
+            - |
+              chown -R 1001:1001 /workspace &&
+              chmod -R 777 /workspace
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            privileged: true
+          volumeMounts:
+            - name: code-server-volume
+              mountPath: /workspace
+        - name: init-code
+          image: anshik12/ideserver:vite_react_app
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+            - |
+              cp -rf /home/temp_code/* /workspace/ || true
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+          volumeMounts:
+            - name: code-server-volume
+              mountPath: /workspace
       containers:
         - name: vite-react-container
           image: anshik12/ideserver:vite_react_app
-          command: 
-            - code-server
+          imagePullPolicy: Always
+          command: ["/usr/bin/code-server"]
           args:
             - --bind-addr
             - 0.0.0.0:8080
             - --auth
             - none
-            - /home/vscode/code
+            - /workspace
             - --disable-telemetry
           ports:
             - containerPort: 8080
@@ -52,7 +81,10 @@ spec:
               cpu: "1000m"
           volumeMounts:
             - name: code-server-volume
-              mountPath: /home/vscode/code
+              mountPath: /workspace
+          env:
+            - name: HOME
+              value: /home/vscode
       volumes:
         - name: code-server-volume
           hostPath:
@@ -72,22 +104,19 @@ spec:
       protocol: TCP
       port: 8080
       targetPort: 8080
+      nodePort: 30080
     - name: react-port
       protocol: TCP
       port: 3000
-      targetPort: 3000`
+      targetPort: 3000
+      nodePort: 30300
+`
 
 // TestNewOrchestration tests the NewOrchestration function.
-func TestNewOrchestration(t *testing.T) {
-	_, err := NewOrchestration()
-	if err == nil {
-		t.Errorf("This test is designed to fail without a valid kubeconfig or in-cluster config")
-	}
-}
 
 // TestCreateDeployment tests the CreateDeployment method.
 func TestCreateDeployment(t *testing.T) {
-	orch, _ := NewOrchestration()
+	orch := NewOrchestration()
 	// Create a sample deployment object.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -131,16 +160,16 @@ func TestCreateDeployment(t *testing.T) {
 	}
 }
 func TestEveryThing(t *testing.T) {
-	orr, err := NewOrchestration()
-	if err != nil {
-		t.Errorf("orchestration failed to connect")
-	}
-	depManfaist, errr := getDeploymentManifest(vite_config)
+	orr := NewOrchestration()
+	fmt.Print(orr)
+
+	depManfaist, errr := getDeploymentManifest(vite_config, "new")
 	if errr != nil {
-		t.Errorf(err.Error() + " yaml string is not correct")
+		t.Errorf(errr.Error() + " yaml string is not correct")
 
 	}
-	err = orr.CreateDeployment(depManfaist)
+	fmt.Print(depManfaist)
+	err := orr.CreateDeployment(depManfaist)
 	if err != nil {
 		t.Errorf("failed to create deployment from mainfest " + err.Error())
 	}

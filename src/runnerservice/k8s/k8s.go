@@ -1,10 +1,11 @@
-package main
+package k8s
 
 import (
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +23,7 @@ type Orchestration struct {
 	ClientSet *kubernetes.Clientset
 }
 
-func NewOrchestration() (*Orchestration, error) {
+func NewOrchestration() *Orchestration {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -36,18 +37,19 @@ func NewOrchestration() (*Orchestration, error) {
 		fmt.Println("kubeconfig file not found, attempting in-cluster configuration...")
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create Kubernetes client configuration: %w", err)
+			log.Panic("Failed to get k8s config incluster and kubeconfig file")
 		}
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes clientset: %w", err)
+		log.Panic("failed to create Kubernetes clientset: %w", err)
+		return nil
 	}
 
 	return &Orchestration{
 		ClientSet: clientSet,
-	}, nil
+	}
 }
 
 func (o *Orchestration) CreateDeployment(deployment *appsv1.Deployment) error {
@@ -101,21 +103,32 @@ func (o *Orchestration) DeleteDeployment(deploymentName string) error {
 	}
 	return nil
 }
-
-func getDeploymentManifest(deploymentString string) (*appsv1.Deployment, error) {
-	deployment := &appsv1.Deployment{}
-	namespace := &apiv1.Namespace{}
+func getServiceManifest(serviceString string, serviceuniqueId string) (*apiv1.Service, error) {
 	service := &apiv1.Service{}
-	fmt.Print(namespace, service)
+	err := yaml.Unmarshal([]byte(serviceString), service)
+	service.ObjectMeta.Name = serviceuniqueId
+	service.Spec.Selector = map[string]string{
+		"app": serviceuniqueId,
+	}
+	if err != nil {
+		return nil, err
+	}
+	return service, nil
+}
+func getDeploymentManifest(deploymentString string, deploymentuniqueId string) (*appsv1.Deployment, error) {
+	deployment := &appsv1.Deployment{}
+
 	err := yaml.Unmarshal([]byte(deploymentString), deployment)
 	if err != nil {
 		return nil, err
 	}
-	securityContext := &apiv1.PodSecurityContext{
-		RunAsUser:  int64Ptr(1001),
-		RunAsGroup: int64Ptr(1001),
+	deployment.ObjectMeta.Name = deploymentuniqueId
+	deployment.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": deploymentuniqueId,
+		},
 	}
-	deployment.Spec.Template.Spec.SecurityContext = securityContext
+
 	deployment.Spec.Template.Spec.AutomountServiceAccountToken = returnFalseAddr()
 	return deployment, nil
 }

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 
 	IDESERVER "github.com/anshiq/ideserver/src/runnerservice/genproto"
+	Hostiptopodmap "github.com/anshiq/ideserver/src/runnerservice/hostiptopodMap"
+	K8s "github.com/anshiq/ideserver/src/runnerservice/k8s"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -13,18 +14,11 @@ import (
 type RunnerService struct {
 	IDESERVER.UnimplementedRunnerServiceServer
 }
-type RunnerServiceI interface {
-	MakeContainer(context.Context, *IDESERVER.MakeContainerRequest) (*IDESERVER.DeleteContainerResponse, error)
-	GetContainerDns(context.Context, *IDESERVER.ConnectContainerRequest) (*IDESERVER.ConnectContainerResponse, error)
-	DeleteContainer(context.Context, *IDESERVER.DeleteContainerRequest) (*IDESERVER.DeleteContainerResponse, error)
-}
+
+var Orc = K8s.NewOrchestration()
+var ActivePods = Hostiptopodmap.NewActivePods()
 
 func main() {
-	orc, err := NewOrchestration()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Print(orc)
 	ActivePods.Add("anshik", "http://localhost:8082")
 	ActivePods.Add("sarb", "https://sidhu-moosewala1.blogspot.com/2025/02/physics-pdf.html")
 	listner, err := net.Listen("tcp", ":8081")
