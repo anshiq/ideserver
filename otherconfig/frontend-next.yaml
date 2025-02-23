@@ -1,54 +1,50 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: nextjs-app
   labels:
-    app: frontend
+    app: nextjs-app
 spec:
-  replicas: 1
+  replicas: 3 # Number of replicas (pods)
   selector:
     matchLabels:
-      app: frontend
+      app: nextjs-app
   template:
     metadata:
       labels:
-        app: frontend
+        app: nextjs-app
     spec:
       containers:
-        - name: frontend-next
-          image: docker.io/library/node21
-          imagePullPolicy: Always
-          command: ["/usr/bin/code-server"]
-          args:
-            - --bind-addr
-            - 0.0.0.0:8080
-            - --auth
-            - none
-            - /workspace 
-            - --disable-telemetry
+        - name: nextjs-app
+          image: anshik12/ideserver:frontend
           ports:
-            - containerPort: 3000
-              name: frontend-port
+            - containerPort: 3000 # Port your app listens on
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: BACKEND_URL
+              value: "https://api.iamanshik.online"
+            - name: NEXT_TELEMETRY_DISABLED
+              value: "1"
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "500m"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
-
+              cpu: "500m"
+              memory: "512Mi"
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
+  name: nextjs-app
+  labels:
+    app: nextjs-app
 spec:
-  selector:
-    app: frontend
+  type: ClusterIP # Exposes the service internally within the cluster
   ports:
-    - name: frontend-port
-      protocol: TCP
-      port: 3000
-      targetPort: 3000
-      nodePort: 30300
+    - port: 3000 # Port exposed by the service
+      targetPort: 3000 # Port the container listens on
+  selector:
+    app: nextjs-app

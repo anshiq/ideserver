@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runnerservice
+spec:
+  replicas: 1  # Adjust the replica count as needed
+  selector:
+    matchLabels:
+      app: runnerservice
+  template:
+    metadata:
+      labels:
+        app: runnerservice
+    spec:
+      serviceAccountName: default  # Use the default service account
+      containers:
+        - name: runnerservice
+          image: anshik12/ideserver:runnerservice
+          ports:
+            - containerPort: 8081
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m" 
+              memory: "256Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: runnerservice-service
+spec:
+  selector:
+    app: runnerservice
+  ports:
+    - protocol: TCP
+      port: 80        # External port
+      targetPort: 8081  # Container's exposed port
+  type: ClusterIP  # Change to LoadBalancer if needed for external access

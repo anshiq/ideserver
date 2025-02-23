@@ -22,12 +22,14 @@ func main() {
 	ActivePods.Add("anshik", "http://localhost:8082")
 	ActivePods.Add("sarb", "https://sidhu-moosewala1.blogspot.com/2025/02/physics-pdf.html")
 	if err != nil {
-		panic("err on k8s cofig" + err.Error())
+		panic("err on k8s cofig exiting app" + err.Error())
+
 	}
 	listner, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)
 	}
+	fmt.Print("hit")
 	srv := grpc.NewServer()
 	IDESERVER.RegisterRunnerServiceServer(srv, &RunnerService{})
 	reflection.Register(srv)

@@ -177,12 +177,15 @@ func TestEveryThing(t *testing.T) {
 	deploymentYAML := strings.TrimSpace(parts[0])
 	serviceYAML := strings.TrimSpace(parts[1])
 	depManfaist, errr := orr.GetDeploymentManifest(deploymentYAML, "react", "newiiiiiii0")
-	servManfaist, errr := orr.GetServiceManifest(serviceYAML, "react", "newiiiiiii0")
 	if errr != nil {
-		t.Errorf(errr.Error() + " yaml string is not correct...")
+		t.Errorf(errr.Error() + "deployment in yaml string is not correct...")
 
 	}
+	servManfaist, errr := orr.GetServiceManifest(serviceYAML, "react", "newiiiiiii0")
+	if errr != nil {
+		t.Errorf(errr.Error() + "service in yaml string is not correct...")
 
+	}
 	err = orr.CreateDeployment(depManfaist)
 	if err != nil {
 		t.Errorf("failed to create deployment from mainfest " + err.Error())

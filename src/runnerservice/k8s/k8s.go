@@ -35,20 +35,20 @@ func NewOrchestration() (*Orchestration, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		log.Printf("kubeconfig file not found, attempting in-cluster configuration: %v", err)
+		fmt.Println("kubeconfig file not found, attempting in-cluster configuration: %v\n", err.Error())
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			log.Fatalf("Failed to get k8s config in-cluster and kubeconfig file: %v", err)
+			fmt.Println("Failed to get k8s config in-cluster and kubeconfig file: %v\n", err.Error())
 			return nil, err
 		}
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Fatalf("Failed to create Kubernetes clientset: %v", err)
+		fmt.Println("Failed to create Kubernetes clientset: %v", err.Error())
 		return nil, err
 	}
-
+	fmt.Print("\n\nKube client and client sets created successfully and stable and about to start gprc server\n\n")
 	return &Orchestration{
 		ClientSet: clientSet,
 	}, nil
@@ -267,6 +267,6 @@ func int32Ptr(i int32) *int32 {
 	return &i
 }
 
-func int64Ptr(i int64) *int64 {
-	return &i
-}
+// func int64Ptr(i int64) *int64 {
+// 	return &i
+// }

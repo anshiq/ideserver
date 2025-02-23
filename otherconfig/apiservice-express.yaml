@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-app2
+  labels:
+    app: express-app
+spec:
+  replicas: 1 # Number of replicas (pods)
+  selector:
+    matchLabels:
+      app: express-app
+  template:
+    metadata:
+      labels:
+        app: express-app
+    spec:
+      containers:
+        - name: express-app
+          image: anshik12/ideserver:apiservice
+          ports:
+            - containerPort: 8080 # Port your app listens on
+          env:
+            - name: PORT
+              value: "8080"
+            - name: GRPC_PORT
+              value: "localhost:8081"
+            - name: MONGOURI
+              value: "mongodb+srv://anshik:anshik12@cluster0.fuqim.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+            - name: EMAIL_SERVICE_MAIL
+              value: "anshikthind@gmail.com"
+            - name: EMAIL_SERVICE_PASS
+              value: "bqmj ktff rpuy dakx"
+            - name: SALTROUNDS
+              value: "12"
+            - name: JWTSECRET
+              value: "zehaha"
+            - name: FRONTEND_URL
+              value: "https://iamanshik.online"
+            - name: API_SERVICE_PUBLIC_IP
+              value: "https://api.iamanshik.online"
+          resources:
+            requests:
+              cpu: "100m" # Minimum CPU required
+              memory: "128Mi" # Minimum memory required
+            limits:
+              cpu: "500m" # Maximum CPU allowed
+              memory: "512Mi" # Maximum memory allowed
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: express-app-service
+  labels:
+    app: express-app
+spec:
+  ports:
+    - port: 80 # Port exposed by the service
+      targetPort: 8080 # Port the app listens on
+  selector:
+    app: express-app # Matches the labels in the Deployment
