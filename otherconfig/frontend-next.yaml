@@ -1,0 +1,54 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend-next
+          image: docker.io/library/node21
+          imagePullPolicy: Always
+          command: ["/usr/bin/code-server"]
+          args:
+            - --bind-addr
+            - 0.0.0.0:8080
+            - --auth
+            - none
+            - /workspace 
+            - --disable-telemetry
+          ports:
+            - containerPort: 3000
+              name: frontend-port
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - name: frontend-port
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30300

@@ -240,12 +240,19 @@ func (o *Orchestration) GetDeploymentManifest(deploymentString string, stack str
 	}
 
 	deployment.ObjectMeta.Name = deploymentuniqueId
-	deployment.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app":   deploymentuniqueId,
-			"stact": stack,
-		},
+	deployment.Spec.Replicas = int32Ptr(1)
+	deployment.Spec.Selector.MatchLabels = map[string]string{
+		"app": deploymentuniqueId,
 	}
+	deployment.Spec.Template.ObjectMeta.Labels = map[string]string{
+		"app":   deploymentuniqueId,
+		"stack": stack,
+	}
+	deployment.Spec.Template.Spec.Volumes[0].Name = deploymentuniqueId
+	deployment.Spec.Template.Spec.Volumes[0].HostPath.Path = "/home/" + deploymentuniqueId
+	deployment.Spec.Template.Spec.InitContainers[1].VolumeMounts[0].Name = deploymentuniqueId
+	deployment.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name = deploymentuniqueId
+	deployment.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name = deploymentuniqueId
 
 	deployment.Spec.Template.Spec.AutomountServiceAccountToken = returnFalseAddr()
 	return deployment, nil

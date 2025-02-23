@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,7 +26,7 @@ spec:
   template:
     metadata:
       labels:
-        app: code-server
+        app: code-server 
     spec:
       initContainers:
         - name: init-volume
@@ -65,7 +66,7 @@ spec:
             - 0.0.0.0:8080
             - --auth
             - none
-            - /workspace
+            - /workspace 
             - --disable-telemetry
           ports:
             - containerPort: 8080
@@ -96,7 +97,6 @@ kind: Service
 metadata:
   name: code-server-service
 spec:
-  type: NodePort
   selector:
     app: code-server
   ports:
@@ -104,12 +104,10 @@ spec:
       protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 30080
     - name: react-port
       protocol: TCP
       port: 3000
       targetPort: 3000
-      nodePort: 30300
 `
 
 // TestNewOrchestration tests the NewOrchestration function.
@@ -162,22 +160,36 @@ func TestCreateDeployment(t *testing.T) {
 		t.Errorf("Expected deployment name 'test-deployment', got '%s'", createdDeployment.Name)
 	}
 }
+
+// lll
+// lll
 func TestEveryThing(t *testing.T) {
 	orr, err := NewOrchestration()
 	if err != nil {
 		t.Error(err.Error())
 	}
 	fmt.Print(orr)
+	parts := strings.Split(vite_config, "---")
+	if len(parts) < 2 {
+		t.Error("Incompleter yaml filee.....")
+	}
 
-	depManfaist, errr := orr.GetDeploymentManifest(vite_config, "react", "new")
+	deploymentYAML := strings.TrimSpace(parts[0])
+	serviceYAML := strings.TrimSpace(parts[1])
+	depManfaist, errr := orr.GetDeploymentManifest(deploymentYAML, "react", "newiiiiiii0")
+	servManfaist, errr := orr.GetServiceManifest(serviceYAML, "react", "newiiiiiii0")
 	if errr != nil {
-		t.Errorf(errr.Error() + " yaml string is not correct")
+		t.Errorf(errr.Error() + " yaml string is not correct...")
 
 	}
-	fmt.Print(depManfaist)
+
 	err = orr.CreateDeployment(depManfaist)
 	if err != nil {
 		t.Errorf("failed to create deployment from mainfest " + err.Error())
+	}
+	err = orr.CreateService(servManfaist)
+	if err != nil {
+		t.Errorf("failed to create service of deployment from mainfest " + err.Error())
 	}
 
 }

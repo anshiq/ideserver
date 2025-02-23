@@ -53,7 +53,7 @@ spec:
             - 0.0.0.0:8080
             - --auth
             - none
-            - /workspace
+            - /workspace 
             - --disable-telemetry
           ports:
             - containerPort: 8080

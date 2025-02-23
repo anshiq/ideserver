@@ -1,0 +1,160 @@
+# ConfigMap for OpenResty configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openresty-ingress-config
+  namespace: ingress-system
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+        
+        lua_package_path "/etc/nginx/lua/?.lua;;";
+        
+        # Basic settings
+        sendfile        on;
+        keepalive_timeout  65;
+        
+        # Logging formats
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                         '$status $body_bytes_sent "$http_referer" '
+                         '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        log_format  location_log  '$remote_addr - $remote_user [$time_local] "$request" '
+                                 '$status $body_bytes_sent "$http_referer" '
+                                 '"$http_user_agent" "$http_x_forwarded_for" '
+                                 'Backend: $backend_service';
+        
+        # Access and error logs
+        access_log  /var/log/nginx/access.log  main;
+        error_log   /var/log/nginx/error.log;
+        
+        # Init Lua module
+        init_by_lua_block {
+            routing = require "routing"
+        }
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            location / {
+                access_by_lua_block {
+                    routing.process_request()
+                }
+                
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+        }
+    }
+
+  routing.lua: |
+    local _M = {}
+    local ngx = ngx
+    
+    function _M.process_request()
+        local host = ngx.var.host
+        
+        -- Handle main domain
+        if host == "iamanshik.online" then
+            ngx.var.proxy_pass = "http://main-app-svc.default:3000"
+            return
+        end
+        
+        -- Handle API subdomain
+        if host == "api.iamanshik.online" then
+            ngx.var.proxy_pass = "http://api-svc.default:8080"
+            return
+        end
+        
+        -- Handle dynamic code subdomains
+        local ip, port = string.match(host, "^(%d+)-(%d+)%.code%.iamanshik%.online$")
+        if ip and port then
+            -- Log the backend service
+            ngx.var.backend_service = ip .. ":" .. port
+            -- Validate IP and port ranges for security
+            if tonumber(ip) >= 1 and tonumber(ip) <= 255 and
+               tonumber(port) >= 1024 and tonumber(port) <= 65535 then
+                ngx.var.proxy_pass = "http://" .. ip .. "." .. 
+                                   ngx.var.service_cidr .. ":" .. port
+                return
+            end
+        end
+        
+        -- Default: return 404
+        ngx.status = 404
+        ngx.say("Not found")
+        ngx.exit(404)
+    end
+    
+    return _M
+
+---
+# Deployment for OpenResty Ingress Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openresty-ingress
+  namespace: ingress-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: openresty-ingress
+  template:
+    metadata:
+      labels:
+        app: openresty-ingress
+    spec:
+      containers:
+      - name: openresty
+        image: openresty/openresty:alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: SERVICE_CIDR
+          value: "0.0" # Update with your cluster's service CIDR
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: config
+          mountPath: /etc/nginx/lua/routing.lua
+          subPath: routing.lua
+      volumes:
+      - name: config
+        configMap:
+          name: openresty-ingress-config
+
+---
+# Service for OpenResty Ingress Controller
+apiVersion: v1
+kind: Service
+metadata:
+  name: openresty-ingress
+  namespace: ingress-system
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080  # You can specify a port between 30000-32767
+    protocol: TCP
+    name: http
+  selector:
+    app: openresty-ingress

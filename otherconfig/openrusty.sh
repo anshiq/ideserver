@@ -30,10 +30,41 @@ http {
     # Main access and error logs
     access_log  /var/log/nginx/access.log  main;
     error_log   /var/log/nginx/error.log;
+    server {
+    listen 80;
+    server_name iamanshik.online;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+    }
+}
+server {
+    listen 80;
+    server_name api.iamanshik.online;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+    }
+}
 
     server {
-        listen 8083;
-        server_name ~^(?<port>\d+)\.code\.iamanshik\.online$;
+        listen 80;
+        server_name ~^(?<ip>\d+)\~^(?<port>\d+)\.code\.iamanshik\.online$; # wrong need fix
 
         # Remove the debug log from server block
         # access_log /var/log/nginx/debug.log main;
@@ -45,10 +76,10 @@ http {
             error_log  /var/log/nginx/location_error.log;
 
             # Log the proxy_pass URL
-            add_header X-Debug-Proxy-Pass "http://127.0.0.1:$port";
+            add_header X-Debug-Proxy-Pass "$ip:$port";
             
             # Fix proxy_pass to use correct variable
-            proxy_pass http://127.0.0.1:$port;
+            proxy_pass http://$ip:$port;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
