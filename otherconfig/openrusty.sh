@@ -1,6 +1,9 @@
 ---------------------------------------------
 # local ubuntu openresty config int  /usr/local/openresty/nginx/conf/nginx.conf
 # Change user to www-data or your system user
+
+
+# Change user to www-data or your system user
 user www-data;
 worker_processes auto;
 
@@ -30,41 +33,10 @@ http {
     # Main access and error logs
     access_log  /var/log/nginx/access.log  main;
     error_log   /var/log/nginx/error.log;
-    server {
-    listen 80;
-    server_name iamanshik.online;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-    }
-}
-server {
-    listen 80;
-    server_name api.iamanshik.online;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-    }
-}
 
     server {
-        listen 80;
-        server_name ~^(?<ip>\d+)\~^(?<port>\d+)\.code\.iamanshik\.online$; # wrong need fix
+        listen 8083;
+        server_name ~^(?<port>\d+)\.code\.iamanshik\.online$;
 
         # Remove the debug log from server block
         # access_log /var/log/nginx/debug.log main;
@@ -76,10 +48,10 @@ server {
             error_log  /var/log/nginx/location_error.log;
 
             # Log the proxy_pass URL
-            add_header X-Debug-Proxy-Pass "$ip:$port";
+            add_header X-Debug-Proxy-Pass "http://127.0.0.1:$port";
             
             # Fix proxy_pass to use correct variable
-            proxy_pass http://$ip:$port;
+            proxy_pass http://127.0.0.1:$port;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -116,8 +88,27 @@ server {
 #         }
 #     }
 # }
+
+
+
+
+# worker_processes 1;
+# events {
+#     worker_connections 1024;
+# }
+# http {
+#     server {
+#         listen 8083 reuseport;
+#         location / {
+#             default_type text/plain;
+#             content_by_lua_block {
+#                 ngx.say("Hello World")
+#             }
+#         }
+#     }
+# }
 ------------------------------------------------------------
-# aws ubuntu config nginx
+# aws ubuntu config nginx /etc/nginx/nginx.conf
 server {
     listen 80;
     server_name iamanshik.online;

@@ -23,7 +23,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: GRPC_PORT
-              value: "localhost:8081"
+              value: "runnerservice-service:80"
             - name: MONGOURI
               value: "mongodb+srv://anshik:anshik12@cluster0.fuqim.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
             - name: EMAIL_SERVICE_MAIL
@@ -55,7 +55,7 @@ metadata:
     app: express-app
 spec:
   ports:
-    - port: 80 # Port exposed by the service
+    - port: 8080 # Port exposed by the service
       targetPort: 8080 # Port the app listens on
   selector:
     app: express-app # Matches the labels in the Deployment

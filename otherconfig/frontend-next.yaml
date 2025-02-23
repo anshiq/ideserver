@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nextjs-app
+  name: nextjs
   labels:
-    app: nextjs-app
+    app: nextjs
 spec:
-  replicas: 3 # Number of replicas (pods)
+  replicas: 1 # Number of replicas (pods)
   selector:
     matchLabels:
-      app: nextjs-app
+      app: nextjs
   template:
     metadata:
       labels:
-        app: nextjs-app
+        app: nextjs
     spec:
       containers:
-        - name: nextjs-app
+        - name: nextjs
           image: anshik12/ideserver:frontend
           ports:
             - containerPort: 3000 # Port your app listens on
@@ -38,13 +38,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nextjs-app
+  name: nextjs
   labels:
-    app: nextjs-app
+    app: nextjs
 spec:
   type: ClusterIP # Exposes the service internally within the cluster
   ports:
     - port: 3000 # Port exposed by the service
       targetPort: 3000 # Port the container listens on
   selector:
-    app: nextjs-app
+    app: nextjs

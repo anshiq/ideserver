@@ -36,6 +36,6 @@ spec:
     app: runnerservice
   ports:
     - protocol: TCP
-      port: 80        # External port
+      port: 8081        # External port
       targetPort: 8081  # Container's exposed port
   type: ClusterIP  # Change to LoadBalancer if needed for external access

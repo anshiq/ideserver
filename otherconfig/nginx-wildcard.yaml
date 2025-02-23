@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-nginx-config
+data:
+  nginx.conf: |
+    worker_processes auto;
+    
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+        
+        # Define Kubernetes DNS resolver because nginx by default can't resolve dns ip of k8s
+        resolver kube-dns.kube-system.svc.cluster.local valid=10s;
+
+        # Basic settings
+        sendfile        on;
+        keepalive_timeout  65;
+        
+        # Enhanced log format for incoming requests
+        log_format incoming '$remote_addr - $remote_user [$time_local] '
+                          '"$request" $status $body_bytes_sent '
+                          '"$http_referer" "$http_user_agent" '
+                          'Host: $host '
+                          'Incoming-Request-ID: $request_id';
+        
+        # Enhanced log format for proxy requests
+        log_format proxy    '$remote_addr - $remote_user [$time_local] '
+                          '"$request" $status $body_bytes_sent '
+                          'Upstream: $target '
+                          'Response-Time: $upstream_response_time '
+                          'Request-ID: $request_id';
+        
+        # Main access and error logs
+        access_log  /var/log/nginx/access.log  incoming;
+        error_log   /var/log/nginx/error.log warn;
+        
+        server {
+            listen 80;
+            server_name ~^(?<service>[a-zA-Z0-9-]+)-(?<port>\d+)\.code\.iamanshik\.online$;
+            
+            set $target '';  # Declare the variable
+            
+            # Generate unique request ID
+            add_header X-Request-ID $request_id;
+            
+            location / {
+                access_log /var/log/nginx/proxy.log proxy;
+                
+                access_by_lua_block {
+                    local service = ngx.var.service
+                    local port = ngx.var.port
+                    
+                    if service and port then
+                        ngx.var.target = "http://" .. service .. ".default.svc.cluster.local:" .. port
+                        ngx.log(ngx.INFO, "Proxying to: " .. ngx.var.target)
+                    else
+                        ngx.log(ngx.ERR, "Invalid hostname pattern")
+                        ngx.exit(404)
+                    end
+                }
+                
+                proxy_pass $target;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Request-ID $request_id;
+                
+                # WebSocket support
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-reverse-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-reverse-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-reverse-proxy
+    spec:
+      containers:
+      - name: nginx
+        image: openresty/openresty:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: config-volume
+          mountPath: /usr/local/openresty/nginx/conf/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+      volumes:
+      - name: config-volume
+        configMap:
+          name: custom-nginx-config
+      - name: nginx-logs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-reverse-proxy
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app: nginx-reverse-proxy
