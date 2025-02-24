@@ -1,14 +1,9 @@
 package k8s
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
-
-	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var vite_config = `
@@ -110,60 +105,7 @@ spec:
       targetPort: 3000
 `
 
-// TestNewOrchestration tests the NewOrchestration function.
-
-// TestCreateDeployment tests the CreateDeployment method.
-func TestCreateDeployment(t *testing.T) {
-	orch, err := NewOrchestration()
-	if err != nil {
-		t.Error(err.Error())
-	}
-	// Create a sample deployment object.
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-deployment",
-		},
-		Spec: appsv1.DeploymentSpec{
-			// Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": "test"},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": "test"},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
-						{
-							Name:  "test-container",
-							Image: "nginx:latest",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Call the CreateDeployment method.
-	err = orch.CreateDeployment(deployment)
-	if err != nil {
-		t.Errorf("CreateDeployment failed:")
-	}
-
-	// Verify the deployment was created.
-	createdDeployment, err := orch.ClientSet.AppsV1().Deployments(apiv1.NamespaceDefault).Get(context.TODO(), "test-deployment", metav1.GetOptions{})
-	if err != nil {
-		t.Errorf("Failed to get created deployment: %v", err)
-	}
-
-	if createdDeployment.Name != "test-deployment" {
-		t.Errorf("Expected deployment name 'test-deployment', got '%s'", createdDeployment.Name)
-	}
-}
-
-// lll
-// lll
-func TestEveryThing(t *testing.T) {
+func TestEveryThingCreate(t *testing.T) {
 	orr, err := NewOrchestration()
 	if err != nil {
 		t.Error(err.Error())
@@ -171,7 +113,7 @@ func TestEveryThing(t *testing.T) {
 	fmt.Print(orr)
 	parts := strings.Split(vite_config, "---")
 	if len(parts) < 2 {
-		t.Error("Incompleter yaml filee.....")
+		t.Error("Incompleter yaml filee....")
 	}
 
 	deploymentYAML := strings.TrimSpace(parts[0])
@@ -197,4 +139,16 @@ func TestEveryThing(t *testing.T) {
 
 }
 
-// int32Ptr is a helper function to return a pointer to an int32 value.
+func TestEveryThingDelete(t *testing.T) {
+	orr, err := NewOrchestration()
+
+	err = orr.DeleteDeployment("newiiiiiii0")
+	if err != nil {
+		t.Errorf("failed to delete deployment " + err.Error())
+	}
+	err = orr.DeleteService("newiiiiiii0")
+	if err != nil {
+		t.Errorf("failed to delete service of deployment " + err.Error())
+	}
+
+}
