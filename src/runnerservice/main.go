@@ -29,7 +29,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print("hit")
 	srv := grpc.NewServer()
 	IDESERVER.RegisterRunnerServiceServer(srv, &RunnerService{})
 	reflection.Register(srv)

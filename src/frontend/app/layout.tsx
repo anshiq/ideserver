@@ -19,7 +19,7 @@ export default function RootLayout({
           className="absolute w-full hidden top-0 left-0 p-4 rounded-l text-black"
           id="notification"
         ></div>
-        {/* <Navbar /> */}
+        <Navbar />
         <div className="bg-gray-700 flex-grow">{children}</div>
       </body>
     </html>
