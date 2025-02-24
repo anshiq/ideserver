@@ -15,8 +15,10 @@ data:
         default_type  application/octet-stream;
         
         # Define Kubernetes DNS resolver because nginx by default can't resolve dns ip of k8s
-        resolver kube-dns.kube-system.svc.cluster.local valid=10s;
-
+        # resolver kube-dns.kube-system.svc.cluster.local valid=10s;
+        resolver 10.96.0.10 valid=300s;
+       #  kubedns vs coredns first is in c single threaded and coredns in go but miltithreaded , go one is 4x faster
+         # kubectl get svc -n kube-system to get ip of coredns
         # Basic settings
         sendfile        on;
         keepalive_timeout  65;
