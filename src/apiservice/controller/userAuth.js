@@ -52,25 +52,25 @@ async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
     const data = await User.findOne({ email: email });
-    
     if (data) {
       const isUser = await comparePassword(password, data.password);
       if (isUser) {
         const token = createJwt(data._id.toString());
-        
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production", // Secure in production
-          sameSite: "Strict",
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        res.json({
+          success: true,
+          data: { token: token, msg: "Login Successfully !!!" },
         });
-
-        return res.json({ success: true, data: { msg: "Login Successfully !!!" } });
+      } else {
+        res.json({ success: false, data: { msg: "Wrong Credentials" } });
       }
+    } else {
+      res.json({ success: false, data: { msg: "Wrong Credentials" } });
     }
-    res.json({ success: false, data: { msg: "Wrong Credentials" } });
   } catch (error) {
-    res.json({ success: false, data: { msg: "Something went wrong" } });
+    res.json({
+      success: false,
+      data: { msg: JSON.stringify({ error: error }) },
+    });
     console.log(error);
   }
 }

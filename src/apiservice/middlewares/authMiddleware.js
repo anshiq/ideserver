@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 require('dotenv').config()
 const jwtSecret = process.env.JWTSECRET || "";
 function verifyToken(req, res, next) {
-  const token = req.cookies?.token;
+  const token = req.header("Authorization");
 
   if (!token) return res.status(401).json({ error: "Access denied" });
   try {
