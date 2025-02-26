@@ -8,13 +8,13 @@ class GrpcService {
     return GrpcService.instance;
   }
 
-  connect(authorClient,GRPC_HOST) {
+  connect(authorClient, GRPC_HOST) {
     if (!authorClient || typeof authorClient !== "object") {
       throw new Error("❌ Invalid gRPC client provided.");
     }
     if (!this._client) {
       this._client = authorClient;
-      console.log("✅ gRPC service connected. at: "+GRPC_HOST);
+      console.log("✅ gRPC service connected. at: " + GRPC_HOST);
     } else {
       console.log("⚡ gRPC service already configured.");
     }
@@ -29,7 +29,7 @@ class GrpcService {
 
   async makeContainer({ stack, hostName, yamlCode }) {
     const requestParams = { techStack: stack, yamlFileCode: yamlCode, hostname: hostName };
-
+    
     return new Promise((resolve, reject) => {
       this.client.makeContainer(requestParams, (error, data) => {
         if (error) reject(error);
@@ -40,7 +40,7 @@ class GrpcService {
 
   async deleteContainer({ hostname }) {
     const requestParams = { hostname };
-
+    
     return new Promise((resolve, reject) => {
       this.client.deleteContainer(requestParams, (error, data) => {
         if (error) reject(error);
@@ -48,9 +48,24 @@ class GrpcService {
       });
     });
   }
+
+  getContainerStatus({ hostname }) {
+    const requestParams = { hostname };
+    
+    // Since this is a streaming response, we don't wrap it in a Promise
+    // Instead, we return the stream so the caller can attach event handlers
+    try {
+      const stream = this.client.getContainerStatus(requestParams);
+      console.log(`⚡ Streaming container status for hostname: ${hostname}`);
+      return stream;
+    } catch (error) {
+      console.error(`❌ Error initiating container status stream: ${error.message}`);
+      throw error;
+    }
+  }
 }
 
 // Export a single instance (Singleton)
 const grpcService = new GrpcService();
-// Object.freeze(grpcService) // freezess the object for further modifications
-module.exports = grpcService;
+// Object.freeze(grpcService) // freezes the object for further modifications
+module.exports = {grpcService};

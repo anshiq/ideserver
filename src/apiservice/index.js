@@ -10,8 +10,8 @@ const { connect_db } = require("./db/connect");
 const { verifyToken } = require("./middlewares/authMiddleware");
 const { authRouter } = require("./routes/authRoutes");
 const { adminRoutes } = require("./routes/adminRoutes");
-const grpcService = require("./Others/grpcHandler");
-const webSocketService = require("./Others/wsHandler");
+const { webSocketService } = require("./Others/wsHandler");
+const { grpcService } = require("./Others/grpcHandler");
 dotenv.config();
 const port = process.env.PORT || 8080;
 const uri = process.env.MONGOURI || "";
@@ -21,7 +21,6 @@ const app = express();
 const httpServer = http.createServer(app);
 app.use(express.json());
 app.use(cors());
-httpServer.on("upgrade", webSocketService.handleUpgrade);
 app.use("/user", userRouter);
 app.use("/auth", verifyToken, authRouter);
 app.use("/admin", verifyToken, adminRoutes);
@@ -47,6 +46,9 @@ const start = () => {
     connect_db(uri);
     const server = httpServer.listen(port, () => {
       console.log(`Server listening at http://localhost:${port}`);
+    });
+    server.on("upgrade", (request, socket, head) => {
+      webSocketService.handleUpgrade(request, socket, head);
     });
     
   } catch (error) {

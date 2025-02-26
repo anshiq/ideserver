@@ -37,10 +37,7 @@ const comparePassword = async (password, hashedPassword) => {
 const createJwt = (id) => {
   const token = jwt.sign(
     { _id: id },
-    jwtSecret,
-       {
-      expiresIn: "7h",
-    }
+    jwtSecret
   );
   return token;
 };
