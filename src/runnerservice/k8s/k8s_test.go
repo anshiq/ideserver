@@ -113,7 +113,7 @@ func TestEveryThingCreate(t *testing.T) {
 	fmt.Print(orr)
 	parts := strings.Split(vite_config, "---")
 	if len(parts) < 2 {
-		t.Error("Incompleter yaml filee....")
+		t.Error("Incompleter yaml filee...")
 	}
 
 	deploymentYAML := strings.TrimSpace(parts[0])

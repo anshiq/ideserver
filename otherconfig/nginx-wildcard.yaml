@@ -5,58 +5,69 @@ metadata:
 data:
   nginx.conf: |
     worker_processes auto;
-    
+
     events {
-        worker_connections 1024;
+        worker_connections 4096;  # Increase worker connections for high traffic
+        multi_accept on;          # Accept multiple connections at once
     }
-    
+
     http {
         include       mime.types;
         default_type  application/octet-stream;
-        
-        # Define Kubernetes DNS resolver because nginx by default can't resolve dns ip of k8s
-        # resolver kube-dns.kube-system.svc.cluster.local valid=10s;
+
+        # Increase buffer sizes for high traffic
+        proxy_buffers 16 32k;
+        proxy_buffer_size 64k;
+
+        # Timeouts for WebSocket connections
+        proxy_connect_timeout 7d;
+        proxy_send_timeout 7d;
+        proxy_read_timeout 7d;
+
+        # Keepalive settings
+        keepalive_timeout 65;
+        keepalive_requests 10000;
+
+        # Disable proxy buffering for WebSockets
+        proxy_buffering off;
+
+        # Define Kubernetes DNS resolver
         resolver 10.96.0.10 valid=300s;
-       #  kubedns vs coredns first is in c single threaded and coredns in go but miltithreaded , go one is 4x faster
-         # kubectl get svc -n kube-system to get ip of coredns
-        # Basic settings
-        sendfile        on;
-        keepalive_timeout  65;
-        
+
         # Enhanced log format for incoming requests
         log_format incoming '$remote_addr - $remote_user [$time_local] '
                           '"$request" $status $body_bytes_sent '
                           '"$http_referer" "$http_user_agent" '
                           'Host: $host '
                           'Incoming-Request-ID: $request_id';
-        
+
         # Enhanced log format for proxy requests
         log_format proxy    '$remote_addr - $remote_user [$time_local] '
                           '"$request" $status $body_bytes_sent '
                           'Upstream: $target '
                           'Response-Time: $upstream_response_time '
                           'Request-ID: $request_id';
-        
+
         # Main access and error logs
         access_log  /var/log/nginx/access.log  incoming;
         error_log   /var/log/nginx/error.log warn;
-        
+
         server {
             listen 80;
             server_name ~^(?<service>[a-zA-Z0-9-]+)-(?<port>\d+)\.code\.iamanshik\.online$;
-            
-            set $target '';  # Declare the variable
-            
+
+            set $target '';
+
             # Generate unique request ID
             add_header X-Request-ID $request_id;
-            
+
             location / {
                 access_log /var/log/nginx/proxy.log proxy;
-                
+
                 access_by_lua_block {
                     local service = ngx.var.service
                     local port = ngx.var.port
-                    
+
                     if service and port then
                         ngx.var.target = "http://" .. service .. ".default.svc.cluster.local:" .. port
                         ngx.log(ngx.INFO, "Proxying to: " .. ngx.var.target)
@@ -65,13 +76,13 @@ data:
                         ngx.exit(404)
                     end
                 }
-                
+
                 proxy_pass $target;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                 proxy_set_header X-Request-ID $request_id;
-                
+
                 # WebSocket support
                 proxy_http_version 1.1;
                 proxy_set_header Upgrade $http_upgrade;
@@ -86,7 +97,7 @@ kind: Deployment
 metadata:
   name: nginx-reverse-proxy
 spec:
-  replicas: 1
+  replicas: 5  # Initial number of replicas
   selector:
     matchLabels:
       app: nginx-reverse-proxy
@@ -100,6 +111,13 @@ spec:
         image: openresty/openresty:alpine
         ports:
         - containerPort: 80
+        # resources:
+        #   requests:
+        #     cpu: "500m"  # 0.5 CPU
+        #     memory: "512Mi"
+        #   limits:
+        #     cpu: "1000m"  # 2 CPU
+        #     memory: "2Gi"
         volumeMounts:
         - name: config-volume
           mountPath: /usr/local/openresty/nginx/conf/nginx.conf
@@ -125,3 +143,24 @@ spec:
     protocol: TCP
   selector:
     app: nginx-reverse-proxy
+  type: ClusterIP  # Use LoadBalancer if exposing externally
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-reverse-proxy-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-reverse-proxy
+  minReplicas: 5
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80

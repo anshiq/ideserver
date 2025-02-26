@@ -37,3 +37,6 @@ spec:
             name: nginx-reverse-proxy
             port:
               number: 80
+#  minikube addons enable ingress
+# minikube stop and start
+# kubectl apply -f ./otherconfig/nginx-ingress.yaml

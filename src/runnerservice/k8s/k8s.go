@@ -7,17 +7,21 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/client-go/util/retry"
+	// informers "k8s.io/client-go/informers/apps/v1"
 )
 
 type Orchestration struct {
@@ -35,17 +39,17 @@ func NewOrchestration() (*Orchestration, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		fmt.Println("kubeconfig file not found, attempting in-cluster configuration: %v\n", err.Error())
+		// fmt.Println("kubeconfig file not found, attempting in-cluster configuration: %v\n", err.Error())
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			fmt.Println("Failed to get k8s config in-cluster and kubeconfig file: %v\n", err.Error())
+			// fmt.Println("Failed to get k8s config in-cluster and kubeconfig file: %v\n", err.Error())
 			return nil, err
 		}
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Println("Failed to create Kubernetes clientset: %v", err.Error())
+		// fmt.Println("Failed to create Kubernetes clientset: %v", err.Error())
 		return nil, err
 	}
 	fmt.Print("\n\nKube client and client sets created successfully and stable and about to start gprc server\n\n")
@@ -257,6 +261,79 @@ func (o *Orchestration) GetDeploymentManifest(deploymentString string, stack str
 	deployment.Spec.Template.Spec.AutomountServiceAccountToken = returnFalseAddr()
 	return deployment, nil
 }
+func (o *Orchestration) GetDeploymentLiveStatus(deploymentuniqueId string, namespace string, depStatus chan int) {
+	labelOptions := informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
+		opts.FieldSelector = "metadata.name=" + deploymentuniqueId
+	})
+	factory := informers.NewSharedInformerFactoryWithOptions(o.ClientSet, 2*time.Second, informers.WithNamespace(namespace), labelOptions)
+	informer := factory.Apps().V1().Deployments().Informer()
+
+	stopChan := make(chan struct{})
+
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			// Handle add event if needed
+		},
+		DeleteFunc: func(obj interface{}) {
+			// Handle delete event if needed
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			dep, ok := newObj.(*appsv1.Deployment)
+			if !ok {
+				return
+			}
+
+			// Look for an Available condition with status True
+			for _, condition := range dep.Status.Conditions {
+				if condition.Type == "Available" && condition.Status == "True" {
+					depStatus <- 1
+					return
+				}
+			}
+
+			// Check if the deployment is ready
+			if dep.Status.ReadyReplicas == dep.Status.Replicas &&
+				dep.Status.Replicas > 0 {
+				depStatus <- 1
+				return
+			}
+		},
+	})
+
+	// Initializes all active informers and starts the internal goroutine
+	factory.Start(stopChan)
+	factory.WaitForCacheSync(stopChan)
+
+	// Set a timeout for 4 minutes
+	timeout := time.After(4 * time.Minute)
+	fmt.Print("at both")
+	select {
+	case <-depStatus:
+		// If a signal is received on depStatus, stop the informer
+		fmt.Print("hit chan first")
+		close(stopChan)
+		return
+	case <-timeout:
+		// If 4 minutes have passed, stop the informer
+		depStatus <- 2 // failed to retrive info
+		fmt.Print("hit time out")
+		close(stopChan)
+		return
+	}
+}
+
+// func getDeployment(namespace string, name string, labelKey string, client *kubernetes.Clientset) *appsv1.Deployment {
+// 	d, err := client.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
+// 	if err != nil {
+// 		return nil
+// 	}
+
+// 	if _, ok := d.GetLabels()[labelKey]; !ok {
+// 		return nil
+// 	}
+
+// 	return d
+// }
 
 func returnFalseAddr() *bool {
 	k := false

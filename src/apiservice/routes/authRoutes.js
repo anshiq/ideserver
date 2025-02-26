@@ -1,12 +1,12 @@
 const { Router } = require("express");
-const { getUserDetails, createContainerService } = require("../controller/authedController")
+const { getUserDetails, createContainerService, deleteContainerService, allUserService, getUserServiceById, reActivateService } = require("../controller/authedController")
 const authRouter = Router();
 authRouter.route("/api").get(getUserDetails);
-authRouter.route("/container").post(
-   createContainerService
-).patch((req,res)=>{
-    return res.send("hi")
-}).delete((req,res)=>{
-    return res.send("hi")
-})
-module.exports= { authRouter };
+authRouter.route("/service").post(
+    createContainerService
+).patch(
+    reActivateService
+).delete(deleteContainerService)
+authRouter.get("/services", allUserService)
+authRouter.get("/service/:id", getUserServiceById)
+module.exports = { authRouter };

@@ -6,8 +6,8 @@ option go_package = ".";
 
 service RunnerService {
   rpc MakeContainer (MakeContainerRequest) returns (MakeContainerResponse) {}
-  rpc GetContainerDns (ConnectContainerRequest) returns (ConnectContainerResponse) {}
-  rpc DeleteContainer (deleteContainerRequest) returns (deleteContainerResponse){}
+  rpc DeleteContainer (DeleteContainerRequest) returns (DeleteContainerResponse){}
+  rpc GetContainerStatus (ContainerStatusRequest) returns (stream ContainerStatusResponse){}
  // rpc updateContainerConfig() returns(){}
 }
 //for now on cpp and reactjs projects are awailable
@@ -18,20 +18,21 @@ message MakeContainerRequest {
 }
 
 message MakeContainerResponse {
- string msg = 2;
-  string err = 3;
+  string msg = 1;
 }
 
-message ConnectContainerRequest {
+message DeleteContainerRequest {
+ string hostname = 1;
+}
+
+message DeleteContainerResponse {
+  string msg = 1;
+}
+
+message ContainerStatusRequest {
   string hostname = 1;
 }
-message ConnectContainerResponse {
-  string podDns = 1;
-}
-message deleteContainerRequest {
-string hostname = 1;
-}
-message deleteContainerResponse {
- string msg = 1;
-  string err = 2; 
+
+message ContainerStatusResponse {
+  string status = 1;
 }
