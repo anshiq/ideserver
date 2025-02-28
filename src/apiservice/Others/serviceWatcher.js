@@ -1,3 +1,5 @@
+const dotenv = require("dotenv")
+dotenv.config()
 class ServiceWatcher {
   static instance; // Singleton instance
   constructor(timeoutDuration = 5000) {
@@ -66,5 +68,6 @@ class ServiceWatcher {
 }
 
 // Usage
-const serviceWatcher = new ServiceWatcher(10000); // 10-second timeout
+const TIMEOUT_MINUTES = process.env.TIMEOUT_MINUTES || 120000
+const serviceWatcher = new ServiceWatcher(parseInt(TIMEOUT_MINUTES)); // 10-second timeout
 module.exports = {serviceWatcher}
