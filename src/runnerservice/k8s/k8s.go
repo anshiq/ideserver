@@ -305,18 +305,16 @@ func (o *Orchestration) GetDeploymentLiveStatus(deploymentuniqueId string, names
 	factory.WaitForCacheSync(stopChan)
 
 	// Set a timeout for 4 minutes
-	timeout := time.After(4 * time.Minute)
+	timeout := time.After(3 * time.Minute)
 	fmt.Print("at both")
 	select {
 	case <-depStatus:
 		// If a signal is received on depStatus, stop the informer
-		fmt.Print("hit chan first")
 		close(stopChan)
 		return
 	case <-timeout:
 		// If 4 minutes have passed, stop the informer
 		depStatus <- 2 // failed to retrive info
-		fmt.Print("hit time out")
 		close(stopChan)
 		return
 	}

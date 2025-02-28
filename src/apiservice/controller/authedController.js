@@ -1,6 +1,7 @@
 const { Container, Service } = require("../models/containerSchema");
 const { User } = require("../models/userSchema");
 const { grpcService } = require("../Others/grpcHandler");
+const { serviceWatcher } = require("../Others/serviceWatcher");
 
 const getUserDetails = async (req, res) => {
   try {
@@ -52,6 +53,7 @@ const createContainerService = async (req, res) => {
     }
 
     await session.commitTransaction();
+    serviceWatcher.add(service._id)
     res.status(200).json({ success: true, message: "Service creation initiated.", service_id: serviceId });
   } catch (error) {
     await session.abortTransaction();
@@ -127,6 +129,7 @@ const reActivateService = async (req, res) => {
     }
 
     await session.commitTransaction();
+    serviceWatcher.add(service._id)
     res.status(200).json({ message: "Service reactivated successfully.", service });
   } catch (error) {
     await session.abortTransaction();

@@ -3,21 +3,39 @@ const url = require("url");
 const jwt = require("jsonwebtoken");
 const { grpcService } = require("./grpcHandler");
 const { Service } = require("../models/containerSchema");
+const { serviceWatcher } = require("./serviceWatcher");
 require("dotenv").config();
 const jwtSecret = process.env.JWTSECRET || "";
+serviceWatcher.addEventListener("onExpire", (serviceName, time) => {
+  console.log(`Timeout Event fired for ${serviceName} after time ${time}`);
+  grpcService.deleteContainer({ hostname: serviceName });
+  webSocketService.activeRequests.has(serviceName)
+    ? webSocketService.activeRequests.delete(serviceName)
+    : null;
+  Service.findByIdAndUpdate(serviceName, { status: "terminated" }).then(() => {
+    console.log(
+      "Service Id: ",
+      serviceName,
+      " Remove from serviceWatcher and turned of.."
+    );
+  });
+});
 async function sendServiceStatus(userId, serviceId) {
   const service = await Service.findById(serviceId);
-  if(service ===null) return  webSocketService.sendWsMessageToUser(
-    JSON.stringify({ status: "No Service of this name Found" }),
-    userId
-  );
+  if (service === null)
+    return webSocketService.sendWsMessageToUser(
+      JSON.stringify({ status: "No Service of this name Found" }),
+      userId
+    );
   if (service.status === "active") {
+    serviceWatcher.add(service._id, Date.now());
     return webSocketService.sendWsMessageToUser(
       JSON.stringify({ status: "active" }),
       userId
     );
   } else if (service.status === "spawning") {
     if (webSocketService.activeRequests.has(serviceId))
+      // form cache
       return webSocketService.sendWsMessageToUser(
         JSON.stringify({ status: "spawning" }),
         userId
@@ -29,6 +47,7 @@ async function sendServiceStatus(userId, serviceId) {
     statusStream.on("data", (data) => {
       console.log("Container status update:", data.status);
       Service.findByIdAndUpdate(serviceId, { status: "active" });
+      serviceWatcher.add(service._id, Date.now());
       webSocketService.sendWsMessageToUser(
         JSON.stringify({ status: "active" }),
         userId
@@ -51,13 +70,20 @@ async function sendServiceStatus(userId, serviceId) {
     );
   }
 }
+async function pollingServiceUpdateStatus(userId, serviceId) {
+  if (serviceWatcher.has(serviceId)) {  // if service is currently watching then it point to update the service active time
+    serviceWatcher.update(serviceId);
+  return   webSocketService.sendWsMessageToUser(JSON.stringify({serviceId,status:"updated"}),userId)
+  }
+  webSocketService.sendWsMessageToUser(JSON.stringify({serviceId,status:"terminated"}),userId)
+}
 class WebSocketService {
   constructor() {
     if (!WebSocketService.instance) {
       console.log("Ws Service Instance created...");
       this.wss = new WebSocket.Server({ noServer: true });
       this.wsClients = new Map();
-      this.activeRequests = new Set();
+      this.activeRequests = new Set(); // handles all the spawning requests and hold traffic of multiple requests
       this.wss.on("connection", (ws, request) =>
         this.handleConnection(ws, request)
       );
@@ -78,10 +104,11 @@ class WebSocketService {
         this.wsClients.set(userId, ws);
         ws.on("message", (message) => {
           const data = JSON.parse(message);
-          if(data.type === "userActivePolling") {
-            console.log("Pod timeout updated")
-          } 
-          if(data.type==="serviceStatus"){
+          if (data.type === "userActivePolling") {
+            console.log("Pod timeout updated");
+            pollingServiceUpdateStatus(userId,data.serviceId)
+          }
+          if (data.type === "serviceStatus") {
             sendServiceStatus(userId, data.serviceId);
           }
         });

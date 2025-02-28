@@ -1,48 +1,49 @@
-const dotenv = require("dotenv")
+const dotenv = require("dotenv");
 dotenv.config()
+// serviceWatcher.js
 class ServiceWatcher {
   static instance; // Singleton instance
   constructor(timeoutDuration = 5000) {
     if (!ServiceWatcher.instance) {
       this.#map = new Map();
       this.#eventsMap = new Map();
-      this.#eventsMap.set("onChange", null);
+      this.#eventsMap.set("onExpire", null);
       this.#timeoutDuration = timeoutDuration; // Configurable timeout
       ServiceWatcher.instance = this;
     }
     return ServiceWatcher.instance;
   }
+
   // Private fields
   #map;
   #eventsMap;
   #timeoutDuration;
-  
+
   add(serviceName, currentTime) {
-    // Call the private method to add a timer
+    console.log("Service added for watching: ",serviceName)
     this.#addTimer(serviceName, currentTime);
-    
-    // Trigger onChange event if it exists
-    if (this.#eventsMap.get("onChange")) {
-      this.#eventsMap.get("onChange")(serviceName, currentTime);
-    }
   }
-  
-  delete(serviceName) {
+
+  delete(serviceName,type = "delete") { // canbe run while update
     if (this.#map.has(serviceName)) {
+
       clearTimeout(this.#map.get(serviceName));
       this.#map.delete(serviceName);
+      if (this.#eventsMap.get("onExpire") && type =="delete") {
+        this.#eventsMap.get("onExpire")(serviceName, Date.now());
+      }
     }
   }
-  
+
   update(serviceName, currentTime) {
-    this.delete(serviceName);
+    this.delete(serviceName,"update");
     this.add(serviceName, currentTime);
   }
-  
+
   has(serviceName) {
     return this.#map.has(serviceName);
   }
-  
+
   addEventListener(event, callback) {
     if (typeof event !== "string" || !this.#eventsMap.has(event)) {
       throw new Error("Invalid event");
@@ -52,8 +53,7 @@ class ServiceWatcher {
     }
     this.#eventsMap.set(event, callback);
   }
-  
-  // Private method to manage timers
+
   #addTimer(serviceName, currentTime) {
     if (this.#map.has(serviceName)) {
       clearTimeout(this.#map.get(serviceName));
@@ -62,12 +62,14 @@ class ServiceWatcher {
       serviceName,
       setTimeout(() => {
         this.delete(serviceName);
-      }, this.#timeoutDuration)
+      }, this.#timeoutDuration),
     );
   }
 }
 
-// Usage
+
+
 const TIMEOUT_MINUTES = process.env.TIMEOUT_MINUTES || 120000
 const serviceWatcher = new ServiceWatcher(parseInt(TIMEOUT_MINUTES)); // 10-second timeout
+
 module.exports = {serviceWatcher}
