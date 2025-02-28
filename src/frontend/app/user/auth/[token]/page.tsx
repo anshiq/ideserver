@@ -17,7 +17,7 @@ function page(props) {
   }
 }
 const VerifyEmail = async ({ token }) => {
-  const data = await axiosFetch.post(
+  const data = await axiosFetch().post(
     "/user/verify-user",
     {
       token: token,
@@ -39,7 +39,7 @@ const ResetPassword = ({ token }) => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (password.password === password.re_password) {
-      axiosFetch.post(
+      axiosFetch().post(
         "/user/verify-forgot-token",
         {
           password: password.password,

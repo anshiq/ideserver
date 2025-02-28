@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import { UserAuthWrapper } from "./components/UserWrapper";
 
 export const metadata: Metadata = {
   title: "",
@@ -15,12 +16,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="h-screen flex flex-col">
-        <div
-          className="absolute w-full hidden top-0 left-0 p-4 rounded-l text-black"
-          id="notification"
-        ></div>
-        <Navbar />
-        <div className="bg-gray-700 flex-grow">{children}</div>
+        <UserAuthWrapper>
+          <div
+            className="absolute w-full hidden top-0 left-0 p-4 rounded-l text-black"
+            id="notification"
+          ></div>
+          <Navbar />
+          <div className="bg-gray-700 flex-grow">{children}</div>
+        </UserAuthWrapper>
       </body>
     </html>
   );

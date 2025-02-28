@@ -2,32 +2,15 @@
 import { axiosFetchAuth } from "@/lib/axiosConfig";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { UserAuthWrapper, useUserAuth } from "./UserWrapper";
 
 function Navbar() {
   const [toggleNav, setToggleNav] = useState(false);
-  const [user, setUser] = useState(null);
+  const {isUserLoggedIn} = useUserAuth()
+  const user = isUserLoggedIn
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token && user === null) {
-      axiosFetchAuth(token)
-        .get("/api")
-        .then((data) => {
-          if (data.data.success) {
-            setUser(data.data.data);
-          }
-        });
-    }
-  }, []);
 
-  const User = ({ data }) => {
-    // console.log(data);
-    return (
-      <button className="text-white p-2 rounded-md bg-gray-900">
-        {data.name}
-      </button>
-    );
-  };
+
 
   return (
     <nav className="bg-gray-800 mob:p-4 p-0 w-full">
@@ -50,11 +33,15 @@ function Navbar() {
           <ul className="flex mob:space-x-4 mob:gap-0 gap-2 items-center justify-center flex-col mob:flex-row ">
             <li className="text-white">Contact</li>
             <li onClick={() => setToggleNav(!toggleNav)} className="text-white">
-              {!user ? <Link href="/user?type=0">Login</Link> : <User data={user} />}
+              {!user ? (
+                <Link href="/user/auth?type=0">Login</Link>
+              ) : (
+                <>Profile redirect pending</>
+              )}
             </li>
             <li onClick={() => setToggleNav(!toggleNav)} className="text-white">
               {!user ? (
-                <Link href="/user?type=1" className="hover:underline">
+                <Link href="/user/auth?type=1" className="hover:underline">
                   Signup{" "}
                 </Link>
               ) : (
@@ -62,7 +49,7 @@ function Navbar() {
                   onClick={() => {
                     localStorage.clear();
                     localStorage.removeItem("token");
-                    window.location.replace("/user?type=0");
+                    window.location.replace("/user/auth?type=0");
                   }}
                   className="p-2 bg-red-600 rounded-md hover:bg-red-400 focus:outline-none focus:ring focus:border-blue-300"
                 >

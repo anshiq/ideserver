@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault();
     localStorage.clear();
     localStorage.removeItem("token");
-    axiosFetch
+    axiosFetch()
       .post(
         "/user/login",
         {
@@ -97,7 +97,7 @@ function SignUp() {
   };
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    axiosFetch
+    axiosFetch()
       .post(
         "/user/signup",
         {
@@ -116,7 +116,7 @@ function SignUp() {
         if (data.data.success) {
           showNotification({ text: data.data.data.msg, color: "green" });
           setTimeout(() => {
-            window.location.replace("/user?type=0");
+            window.location.replace("/user/auth?type=0");
           }, 1500);
         }
       });
@@ -225,7 +225,7 @@ function ForgotPassword() {
   const [email, setEmail] = useState("");
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    axiosFetch
+    axiosFetch()
       .post(
         "/user/forgot-password",
         {
@@ -241,7 +241,7 @@ function ForgotPassword() {
         if (data.data.success) {
           showNotification({ text: data.data.data.msg, color: "green" });
           setTimeout(() => {
-            window.location.replace("/user?type=0");
+            window.location.replace("/user/auth?type=0");
           }, 1500);
         }
       });

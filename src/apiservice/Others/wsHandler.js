@@ -4,11 +4,15 @@ const jwt = require("jsonwebtoken");
 const { grpcService } = require("./grpcHandler");
 const { Service } = require("../models/containerSchema");
 const { serviceWatcher } = require("./serviceWatcher");
+const { rejects } = require("assert");
 require("dotenv").config();
 const jwtSecret = process.env.JWTSECRET || "";
 serviceWatcher.addEventListener("onExpire", (serviceName, time) => {
   console.log(`Timeout Event fired for ${serviceName} after time ${time}`);
-  grpcService.deleteContainer({ hostname: serviceName });
+  grpcService
+    .deleteContainer({ hostname: serviceName })
+    .then((e) => console.log(e))
+    .catch((e) => console.log(e));
   webSocketService.activeRequests.has(serviceName)
     ? webSocketService.activeRequests.delete(serviceName)
     : null;
@@ -20,6 +24,46 @@ serviceWatcher.addEventListener("onExpire", (serviceName, time) => {
     );
   });
 });
+const activeServiceAndMsgPromise = (serviceId) => {
+  return new Promise((resolve, reject) => {
+    if (!serviceId) {
+      console.error("Error: serviceId is undefined");
+      return reject("Service ID is required");
+    }
+
+    const statusStream = grpcService.getContainerStatus({  // it is stream
+      hostname: serviceId,
+    });
+
+    webSocketService.activeRequests.add(serviceId);
+
+    statusStream.on("data", async (data) => {
+      try {
+        console.log("Container status update:", data.status);
+        await Service.findByIdAndUpdate(serviceId, { status: "active" });
+        serviceWatcher.add(serviceId, Date.now());
+        webSocketService.activeRequests.delete(serviceId);
+        resolve("Success!!");
+      } catch (error) {
+        console.error("Error updating service status:", error);
+        reject("Error updating service status");
+      }
+    });
+
+    statusStream.on("error", (error) => {
+      console.error("Stream error:", error);
+      webSocketService.activeRequests.delete(serviceId);
+      reject("Error while finding for a long time (4 mins)");
+    });
+
+    statusStream.on("end", () => {
+      console.log("Stream ended");
+      webSocketService.activeRequests.delete(serviceId);
+      resolve("Done process!!");
+    });
+  });
+};
+
 async function sendServiceStatus(userId, serviceId) {
   const service = await Service.findById(serviceId);
   if (service === null)
@@ -40,29 +84,11 @@ async function sendServiceStatus(userId, serviceId) {
         JSON.stringify({ status: "spawning" }),
         userId
       );
-    const statusStream = grpcService.getContainerStatus({
-      hostname: serviceId,
-    });
-    webSocketService.activeRequests.add(serviceId);
-    statusStream.on("data", (data) => {
-      console.log("Container status update:", data.status);
-      Service.findByIdAndUpdate(serviceId, { status: "active" });
-      serviceWatcher.add(service._id, Date.now());
-      webSocketService.sendWsMessageToUser(
-        JSON.stringify({ status: "active" }),
-        userId
-      );
-      webSocketService.activeRequests.delete(serviceId);
-    });
-    statusStream.on("error", (error) => {
-      console.error("Stream error:", error);
-      webSocketService.activeRequests.delete(serviceId);
-    });
-
-    statusStream.on("end", () => {
-      console.log("Stream ended");
-      webSocketService.activeRequests.delete(serviceId);
-    });
+    await activeServiceAndMsgPromise(serviceId);
+    webSocketService.sendWsMessageToUser(
+      JSON.stringify({ status: "active" }),
+      userId
+    );
   } else if (service.status === "terminated") {
     return webSocketService.sendWsMessageToUser(
       JSON.stringify({ status: "terminated" }),
@@ -71,11 +97,18 @@ async function sendServiceStatus(userId, serviceId) {
   }
 }
 async function pollingServiceUpdateStatus(userId, serviceId) {
-  if (serviceWatcher.has(serviceId)) {  // if service is currently watching then it point to update the service active time
+  if (serviceWatcher.has(serviceId)) {
+    // if service is currently watching then it point to update the service active time
     serviceWatcher.update(serviceId);
-  return   webSocketService.sendWsMessageToUser(JSON.stringify({serviceId,status:"updated"}),userId)
+    return webSocketService.sendWsMessageToUser(
+      JSON.stringify({ serviceId, status: "updated" }),
+      userId
+    );
   }
-  webSocketService.sendWsMessageToUser(JSON.stringify({serviceId,status:"terminated"}),userId)
+  webSocketService.sendWsMessageToUser(
+    JSON.stringify({ serviceId, status: "terminated" }),
+    userId
+  );
 }
 class WebSocketService {
   constructor() {
@@ -106,7 +139,7 @@ class WebSocketService {
           const data = JSON.parse(message);
           if (data.type === "userActivePolling") {
             console.log("Pod timeout updated");
-            pollingServiceUpdateStatus(userId,data.serviceId)
+            pollingServiceUpdateStatus(userId, data.serviceId);
           }
           if (data.type === "serviceStatus") {
             sendServiceStatus(userId, data.serviceId);
@@ -155,4 +188,4 @@ class WebSocketService {
 }
 
 const webSocketService = new WebSocketService();
-module.exports = { webSocketService };
+module.exports = { webSocketService, activeServiceAndMsgPromise };

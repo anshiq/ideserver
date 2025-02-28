@@ -2,12 +2,27 @@
 import React, { Suspense, useState } from "react";
 import { ForgotPassword, Login, SignUp } from "./components/Users";
 import { useSearchParams } from "next/navigation";
+import { useUserAuth } from "@/app/components/UserWrapper";
 
 function Page() {
   const lang: string | null = useSearchParams().get("type") || null;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const anshik = 44;
+  const { isUserLoggedIn, handleLoggoutUser } = useUserAuth();
+  console.log(isUserLoggedIn)
+  if (isUserLoggedIn)
+    return (
+      <>
+        User Logged In{" "}
+        <button
+          onClick={() => {
+            handleLoggoutUser();
+          }}
+        >
+          Loggout
+        </button>
+      </>
+    );
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
