@@ -1,6 +1,6 @@
 const { Container, Service } = require("../models/containerSchema");
 const { User } = require("../models/userSchema");
-const { grpcHandlers } = require("../Others/grpcHandler");
+const { grpcService } = require("../Others/grpcHandler");
 
 const getUserDetails = async (req, res) => {
   try {
@@ -45,7 +45,7 @@ const createContainerService = async (req, res) => {
     }
 
     const serviceId = service[0]._id.toString();
-    const grpcResponse = await grpcHandlers.makeContainer({ stack: stack || "", hostName: serviceId, yamlCode: yamlCode || "" });
+    const grpcResponse = await grpcService.makeContainer({ stack: stack || "", hostName: serviceId, yamlCode: yamlCode || "" });
 
     if (!grpcResponse) {
       throw new Error("gRPC service creation failed.");
@@ -81,7 +81,7 @@ const deleteContainerService = async (req, res) => {
     service.status = "terminated";
     await service.save({ session });
 
-    const grpcResponse = await grpcHandlers.deleteContainer({ hostname: service._id.toString() });
+    const grpcResponse = await grpcService.deleteContainer({ hostname: service._id.toString() });
 
     if (!grpcResponse) {
       throw new Error("gRPC service deletion failed.");
@@ -120,7 +120,7 @@ const reActivateService = async (req, res) => {
     service.status = "spawning";
     await service.save({ session });
 
-    const grpcResponse = await grpcHandlers.makeContainer({ stack: container.stack || "", hostName: serviceId, yamlCode: container.yamlCode || "" });
+    const grpcResponse = await grpcService.makeContainer({ stack: container.stack || "", hostName: serviceId, yamlCode: container.yamlCode || "" });
 
     if (!grpcResponse) {
       throw new Error("gRPC service reactivation failed.");

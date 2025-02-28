@@ -28,7 +28,7 @@ app.all("/err/:err", (req, res) => {
   res.status(400).send("Error occurred" + req.params.err);
 });
 
-const start = () => {
+const start = async () => {
   try {
     var packageDefinition = protoLoader.loadSync(path.join(__dirname, PROTO_PATH), {
       keepCase: true,
@@ -42,15 +42,15 @@ const start = () => {
       GRPC_HOST,
       grpc.credentials.createInsecure()
     );
-    grpcService.connect(authorClient,GRPC_HOST)
-    connect_db(uri);
+    grpcService.connect(authorClient, GRPC_HOST)
+    await connect_db(uri);
     const server = httpServer.listen(port, () => {
       console.log(`Server listening at http://localhost:${port}`);
     });
     server.on("upgrade", (request, socket, head) => {
       webSocketService.handleUpgrade(request, socket, head);
     });
-    
+
   } catch (error) {
     console.log(error);
   }
