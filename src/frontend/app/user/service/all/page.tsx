@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { axiosFetchAuth } from "@/lib/axiosConfig";
+import Link from "next/link";
 
 type ServiceType = {
   _id: string;
@@ -55,6 +56,7 @@ export default function ServicesList() {
                 </span>
               </p>
               <p className="text-gray-600 text-sm">Linked Container: {service.linkedContainer}</p>
+              <Link  href={"/user/service/"+ service._id}>Checkout</Link>
             </div>
           ))}
         </div>

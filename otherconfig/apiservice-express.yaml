@@ -16,14 +16,14 @@ spec:
     spec:
       containers:
         - name: express-app
-          image: anshik12/ideserver:apiservice
+          image: anshik12/ideserver:apiservice-0.8
           ports:
             - containerPort: 8080 # Port your app listens on
           env:
             - name: PORT
               value: "8080"
             - name: GRPC_PORT
-              value: "runnerservice-service:80"
+              value: "runnerservice-service:8081"
             - name: MONGOURI
               value: "mongodb+srv://anshik:anshik12@cluster0.fuqim.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
             - name: EMAIL_SERVICE_MAIL

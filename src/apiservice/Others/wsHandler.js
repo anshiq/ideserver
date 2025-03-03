@@ -4,18 +4,22 @@ const jwt = require("jsonwebtoken");
 const { grpcService } = require("./grpcHandler");
 const { Service } = require("../models/containerSchema");
 const { serviceWatcher } = require("./serviceWatcher");
-const { rejects } = require("assert");
 require("dotenv").config();
+const allowedOrigins = [
+  /\.iamanshik\.online$/, // Matches any subdomain of iamanshik.online
+  ...Array.from({ length: 6 }, (_, i) => `http://localhost:${3000 + i}`) // localhost:3000-3005
+];
 const jwtSecret = process.env.JWTSECRET || "";
 serviceWatcher.addEventListener("onExpire", (serviceName, time) => {
   console.log(`Timeout Event fired for ${serviceName} after time ${time}`);
+  webSocketService.activeRequests.delete(serviceName);
   grpcService
     .deleteContainer({ hostname: serviceName })
-    .then((e) => console.log(e))
+    .then((e) => {
+      console.log(e);
+    })
     .catch((e) => console.log(e));
-  webSocketService.activeRequests.has(serviceName)
-    ? webSocketService.activeRequests.delete(serviceName)
-    : null;
+
   Service.findByIdAndUpdate(serviceName, { status: "terminated" }).then(() => {
     console.log(
       "Service Id: ",
@@ -25,41 +29,78 @@ serviceWatcher.addEventListener("onExpire", (serviceName, time) => {
   });
 });
 const activeServiceAndMsgPromise = (serviceId) => {
+  console.log("hit promise to get grpc stream");
   return new Promise((resolve, reject) => {
     if (!serviceId) {
       console.error("Error: serviceId is undefined");
       return reject("Service ID is required");
     }
 
-    const statusStream = grpcService.getContainerStatus({  // it is stream
+    const statusStream = grpcService.getContainerStatus({
       hostname: serviceId,
     });
 
     webSocketService.activeRequests.add(serviceId);
+
+    let resolved = false; // Track if promise is already resolved/rejected
+    let timeoutId = null;
+
+    // Setup timeout
+    timeoutId = setTimeout(() => {
+      if (!resolved) {
+        console.error("Timeout: No response from gRPC stream.");
+        resolved = true;
+
+        // Clean up the stream if possible
+        try {
+          statusStream.cancel();
+        } catch (err) {
+          console.error("Error cancelling stream:", err);
+        }
+
+        reject("Timeout waiting for gRPC stream");
+      }
+    }, 240000); // 4 minutes timeout
 
     statusStream.on("data", async (data) => {
       try {
         console.log("Container status update:", data.status);
         await Service.findByIdAndUpdate(serviceId, { status: "active" });
         serviceWatcher.add(serviceId, Date.now());
-        webSocketService.activeRequests.delete(serviceId);
-        resolve("Success!!");
+
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          resolve("Success!!");
+        }
       } catch (error) {
         console.error("Error updating service status:", error);
-        reject("Error updating service status");
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          reject("Error updating service status");
+        }
       }
     });
 
     statusStream.on("error", (error) => {
       console.error("Stream error:", error);
-      webSocketService.activeRequests.delete(serviceId);
-      reject("Error while finding for a long time (4 mins)");
+
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        reject("Error in gRPC stream: " + error.message);
+      }
     });
 
     statusStream.on("end", () => {
       console.log("Stream ended");
-      webSocketService.activeRequests.delete(serviceId);
-      resolve("Done process!!");
+
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        resolve("Done process!!");
+      }
     });
   });
 };
@@ -71,30 +112,53 @@ async function sendServiceStatus(userId, serviceId) {
       JSON.stringify({ status: "No Service of this name Found" }),
       userId
     );
+
   if (service.status === "active") {
-    serviceWatcher.add(service._id, Date.now());
+    if (!serviceWatcher.has(serviceId)) {
+      serviceWatcher.add(service._id, Date.now());
+    }
     return webSocketService.sendWsMessageToUser(
-      JSON.stringify({ status: "active" }),
+      JSON.stringify({ status: "active", serviceId }),
       userId
     );
   } else if (service.status === "spawning") {
-    if (webSocketService.activeRequests.has(serviceId))
+    if (webSocketService.activeRequests.has(serviceId)) {
       // form cache
       return webSocketService.sendWsMessageToUser(
-        JSON.stringify({ status: "spawning" }),
+        JSON.stringify({ status: "spawning", serviceId }),
         userId
       );
-    await activeServiceAndMsgPromise(serviceId);
-    webSocketService.sendWsMessageToUser(
-      JSON.stringify({ status: "active" }),
-      userId
-    );
+    }
+    console.log(userId);
+    // Add return statement here to ensure the promise chain completes
+    activeServiceAndMsgPromise(serviceId)
+      .then((e) => {
+        console.log(userId);
+        webSocketService.sendWsMessageToUser(
+          JSON.stringify({ status: "active", serviceId: serviceId }),
+          userId
+        );
+      })
+      .catch((e) => {
+        webSocketService.sendWsMessageToUser(
+          JSON.stringify({ status: "error", serviceId }),
+          userId
+        );
+      });
+
+    return webSocketService.activeRequests.delete(serviceId); // Only delete here after success
   } else if (service.status === "terminated") {
     return webSocketService.sendWsMessageToUser(
-      JSON.stringify({ status: "terminated" }),
+      JSON.stringify({ status: "terminated", serviceId }),
       userId
     );
   }
+
+  // Add a default return for any other status
+  return webSocketService.sendWsMessageToUser(
+    JSON.stringify({ status: "unknown", message: "Service status is unknown" }),
+    userId
+  );
 }
 async function pollingServiceUpdateStatus(userId, serviceId) {
   if (serviceWatcher.has(serviceId)) {
@@ -127,7 +191,15 @@ class WebSocketService {
 
   handleConnection(ws, request) {
     console.log("🔗 New WebSocket connection established");
+    const origin = request.headers.origin;
+
+    if (!origin || !allowedOrigins.some(pattern => new RegExp(pattern).test(origin))) {
+      console.log(`Blocked WebSocket connection from: ${origin}`);
+      ws.close(1008, "Not allowed by CORS policy");
+      return;
+    }
     const token = url.parse(request.url, true).query.token;
+
     let m = jwt.verify(token, jwtSecret, (err, decoded) => {
       if (err) {
         console.log("❌ Invalid Token, closing connection.", decoded);

@@ -28,4 +28,5 @@ ENV PORT=8080 \
 # EXPOSE $PORT
 
 # Command to run the application
-CMD ["npm", "start"]
+CMD ["npm", "run","dev"] 
+# testing

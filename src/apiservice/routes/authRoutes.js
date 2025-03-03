@@ -11,15 +11,14 @@ const {
 
 const authRouter = Router();
 authRouter.route("/api").get(getUserDetails);
-authRouter
-  .route("/service")
-  .post(createContainerService)
-  .patch(reActivateService)
-  .delete(deleteContainerService);
+authRouter.route("/service").post(createContainerService);
 authRouter.get("/get-all-containers", getAllContainersUser);
+
 authRouter.get("/services", allUserService);
 authRouter.get("/service/:id", getUserServiceById);
-authRouter.get("/isLoggedIn", (req,res)=>{
-    res.status(200).json({msg:"yup loggedin"})
+authRouter.patch("/service/:id", reActivateService);
+authRouter.delete("/service/:id", deleteContainerService);
+authRouter.get("/isLoggedIn", (req, res) => {
+  res.status(200).json({ msg: "yup loggedin" });
 });
 module.exports = { authRouter };

@@ -4,6 +4,7 @@ const axiosFetch =() => axios.create({
   // baseURL: "http://localhost:8080/user",
   // baseURL: "http://localhost:8080",
   timeout: 8000,
+  
 });
 
 const axiosFetchAuth = () =>{

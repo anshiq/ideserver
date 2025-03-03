@@ -2,7 +2,7 @@ const { Container, Service } = require("../models/containerSchema");
 const { User } = require("../models/userSchema");
 const { grpcService } = require("../Others/grpcHandler");
 const { serviceWatcher } = require("../Others/serviceWatcher");
-const {  activeServiceAndMsgPromise } = require("../Others/wsHandler");
+const {  activeServiceAndMsgPromise, webSocketService } = require("../Others/wsHandler");
 
 const getUserDetails = async (req, res) => {
   try {
@@ -68,7 +68,13 @@ const createContainerService = async (req, res) => {
 
     await session.commitTransaction();
     console.log("hit",serviceId)
-    activeServiceAndMsgPromise(serviceId)
+    // activeServiceAndMsgPromise(serviceId).then(e=>{
+    //    webSocketService.activeRequests.delete(serviceId);
+    //     console.log("Deleted from createContainerService controller: the activeRequest of ws")
+    // }).catch(e=>{
+    //    webSocketService.activeRequests.delete(serviceId);
+    //     console.log("Deleted from createContainerService controller: the activeRequest of ws")
+    // })
     res.status(200).json({
       success: true,
       message: "Service creation initiated.",
@@ -90,7 +96,7 @@ const deleteContainerService = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { serviceId } = req.body;
+    const { id: serviceId } = req.params;
     const userId = req.userId;
 
     if (!serviceId) {
@@ -120,6 +126,7 @@ const deleteContainerService = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Service deletion initiated." });
   } catch (error) {
+    console.log(error)
     await session.abortTransaction();
     res.status(500).json({
       success: false,
@@ -135,7 +142,7 @@ const reActivateService = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { serviceId } = req.body;
+    const { id: serviceId } = req.params;
     if (!serviceId) {
       return res.status(400).json({ message: "Service ID is required." });
     }
@@ -167,15 +174,22 @@ const reActivateService = async (req, res) => {
 
     await session.commitTransaction();
 
-    activeServiceAndMsgPromise(service._id)
-    res
+  //   activeServiceAndMsgPromise(service._id).then(e=>{
+  //     console.log("Deleted from activeservice controller: the activeRequest of ws")
+  //     webSocketService.activeRequests.delete(serviceId);
+  //  }).catch(e=>{
+  //   console.log("Deleted from activeservice controller: the activeRequest of ws")
+  //     webSocketService.activeRequests.delete(serviceId);
+  //  })
+  return  res
       .status(200)
       .json({ message: "Service reactivated successfully.", service });
   } catch (error) {
     await session.abortTransaction();
-    res
+    console.log(error)
+  return  res
       .status(500)
-      .json({ message: "Internal Server Error: " + error.message });
+      .json({ message: "Internal Server Error hit: " + error.message });
   } finally {
     session.endSession();
   }
@@ -205,19 +219,24 @@ const getUserServiceById = async (req, res) => {
     const { id: serviceId } = req.params;
     const userId = req.userId;
 
-    const service = await Service.findOne({ _id: serviceId, userId });
-
-    if (!service) {
-      return res
-        .status(404)
-        .json({ message: "Service not found or unauthorized access." });
+    if (!serviceId || !userId) {
+      return res.status(400).json({ message: "Invalid service ID or user ID." });
     }
 
-    res.status(200).json({ success: true, service });
+    const service = await Service.findOne({ _id: serviceId, userId });
+    if (!service) {
+      return res.status(404).json({ message: "Service not found or unauthorized access." });
+    }
+
+    const container = await Container.findById(service.linkedContainer);
+    if (!container) {
+      return res.status(404).json({ message: "Linked container not found." });
+    }
+
+    res.status(200).json({ success: true, service, container });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal Server Error: " + error.message });
+    console.error("Error in getUserServiceById:", error);
+    res.status(500).json({ message: "Internal Server Error: " + error.message });
   }
 };
 const getAllContainersUser = async (req, res) => {
