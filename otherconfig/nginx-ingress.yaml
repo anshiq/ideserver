@@ -37,6 +37,7 @@ spec:
             name: nginx-reverse-proxy
             port:
               number: 80
+# minikube start --cpus=3 --memory=6500 && minikube stop && minikube start
 #  minikube addons enable ingress
 # minikube stop and start
 # kubectl apply -f ./otherconfig/nginx-ingress.yaml

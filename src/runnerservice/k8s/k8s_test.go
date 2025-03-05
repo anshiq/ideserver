@@ -29,8 +29,11 @@ spec:
           command: ['sh', '-c']
           args:
             - |
+              echo "Initializing workspace permissions..." &&
               chown -R 1001:1001 /workspace &&
-              chmod -R 777 /workspace
+              echo "Ownership changed to 1001:1001" &&
+              chmod -R 777 /workspace &&
+              echo "Permissions set to 777"
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -38,19 +41,23 @@ spec:
           volumeMounts:
             - name: code-server-volume
               mountPath: /workspace
+
         - name: init-code
           image: anshik12/ideserver:vite_react_app
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
             - |
-              cp -rf /home/temp_code/* /workspace/ || true
+              echo "Copying initial code to workspace..." &&
+              cp -rf /home/temp_code/* /workspace/ || true &&
+              echo "Code copied successfully"
           securityContext:
             runAsUser: 1001
             runAsGroup: 1001
           volumeMounts:
             - name: code-server-volume
               mountPath: /workspace
+
       containers:
         - name: vite-react-container
           image: anshik12/ideserver:vite_react_app
@@ -71,10 +78,10 @@ spec:
           resources:
             requests:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "300m"
             limits:
               memory: "1Gi"
-              cpu: "1000m"
+              cpu: "700m"
           volumeMounts:
             - name: code-server-volume
               mountPath: /workspace
@@ -103,6 +110,7 @@ spec:
       protocol: TCP
       port: 3000
       targetPort: 3000
+
 `
 
 func TestEveryThingCreate(t *testing.T) {
@@ -118,12 +126,13 @@ func TestEveryThingCreate(t *testing.T) {
 
 	deploymentYAML := strings.TrimSpace(parts[0])
 	serviceYAML := strings.TrimSpace(parts[1])
-	depManfaist, errr := orr.GetDeploymentManifest(deploymentYAML, "react", "newiiiiiii0")
+	name := "newii2"
+	depManfaist, errr := orr.GetDeploymentManifest(deploymentYAML, "react", name)
 	if errr != nil {
 		t.Errorf(errr.Error() + "deployment in yaml string is not correct...")
 
 	}
-	servManfaist, errr := orr.GetServiceManifest(serviceYAML, "react", "newiiiiiii0")
+	servManfaist, errr := orr.GetServiceManifest(serviceYAML, "react", name)
 	if errr != nil {
 		t.Errorf(errr.Error() + "service in yaml string is not correct...")
 

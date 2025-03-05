@@ -34,8 +34,12 @@ function Login() {
           setTimeout(() => {
             window.location.replace("/");
           }, 1500);
+        }else{
+          showNotification({ text: data.data.data.msg, color: "orange" });
         }
-      });
+      }).catch(e=>{
+        showNotification({ text: "unkown error occured", color: "red" });
+      })
   };
   return (
     <form onSubmit={handleSubmit}>

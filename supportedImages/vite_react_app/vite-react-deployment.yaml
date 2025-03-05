@@ -20,8 +20,11 @@ spec:
           command: ['sh', '-c']
           args:
             - |
+              echo "Initializing workspace permissions..." &&
               chown -R 1001:1001 /workspace &&
-              chmod -R 777 /workspace
+              echo "Ownership changed to 1001:1001" &&
+              chmod -R 777 /workspace &&
+              echo "Permissions set to 777"
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -29,19 +32,23 @@ spec:
           volumeMounts:
             - name: code-server-volume
               mountPath: /workspace
+
         - name: init-code
           image: anshik12/ideserver:vite_react_app
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
             - |
-              cp -rf /home/temp_code/* /workspace/ || true
+              echo "Copying initial code to workspace..." &&
+              cp -rf /home/temp_code/* /workspace/ || true &&
+              echo "Code copied successfully"
           securityContext:
             runAsUser: 1001
             runAsGroup: 1001
           volumeMounts:
             - name: code-server-volume
               mountPath: /workspace
+
       containers:
         - name: vite-react-container
           image: anshik12/ideserver:vite_react_app
@@ -75,7 +82,7 @@ spec:
       volumes:
         - name: code-server-volume
           hostPath:
-            path: /home/anshik/k8svolume
+            path: /host/hhhh
             type: DirectoryOrCreate
 ---
 apiVersion: v1

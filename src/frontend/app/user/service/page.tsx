@@ -47,7 +47,7 @@ export default function Service() {
       });
       setDialogOpen(false);
       if(k.status ==200){
-        router.push("/service/:id")
+        router.push("/user/service/"+ k.data.service_id)
       }
     } catch (error) {
       console.error("Error creating service:", error);

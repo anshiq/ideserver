@@ -307,8 +307,9 @@ export default function GetServiceDetails() {
                     </button>
                     <button
                     onClick={()=>{
+                      
                       window.open(`http://${serviceId}-3000.code.iamanshik.online`, "_blank");
-                      route.push("http://${serviceId}-8080.code.iamanshik.online")
+                      route.push(`http://${serviceId}-8080.code.iamanshik.online`)
 
                     }}
                     >Open Editor</button>

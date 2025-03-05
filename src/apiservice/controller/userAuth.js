@@ -1,4 +1,3 @@
-
 const { User } = require("../models/userSchema");
 const {
   comparePassword,
@@ -31,14 +30,19 @@ async function signupUser(req, res) {
       verified: false,
     });
     if (data) {
-      const verificationLink = `${process.env.FRONTEND_URL}/user/verify-email?token=${token}`;
+      const verificationLink = `${process.env.FRONTEND_URL}/user/auth/verify-email?token=${token}`;
       const mailoptions = {
         to: data.email,
         subject: "Email Verification",
         text: `Please click the following link to verify your email: ${verificationLink}`,
       };
       sendVerificationEmail(mailoptions);
-      res.json({ success: true, data: { msg: "User signup successful." } });
+      res.json({
+        success: true,
+        data: {
+          msg: "User signup successful... Check Mail To verify Email....",
+        },
+      });
     }
   } catch (error) {
     if (error.name === "ValidationError") {
@@ -55,10 +59,16 @@ async function loginUser(req, res) {
     if (data) {
       const isUser = await comparePassword(password, data.password);
       if (isUser) {
-        const token = createJwt(data._id.toString());
-        res.json({
-          success: true,
-          data: { token: token, msg: "Login Successfully !!!" },
+        if (data.verified === true) {
+          const token = createJwt(data._id.toString());
+          return res.json({
+            success: true,
+            data: { token: token, msg: "Login Successfully !!!" },
+          });
+        }
+        return res.json({
+          success: false,
+          data: { msg: "Verify Your Email First !!!" },
         });
       } else {
         res.json({ success: false, data: { msg: "Wrong Credentials" } });
@@ -81,7 +91,9 @@ const verifyEmailToken = async (req, res) => {
   }
   try {
     const user = await User.findOne({ verifyToken: token });
+    console.log("hit1");
     if (!user) {
+      console.log("hit2");
       return res.status(200).json({
         success: true,
         data: { msg: "User not found or already verified." },
@@ -90,7 +102,7 @@ const verifyEmailToken = async (req, res) => {
     user.verified = true;
     user.verifyToken = undefined;
     await user.save(); // Save the updated user record
-    console.log(user);
+    console.log("hit3");
     res.status(200).json({
       success: true,
       data: { msg: "User  verification successfully." },
@@ -134,7 +146,7 @@ async function forgotPassword(req, res) {
       user.verifyToken = token;
       console.log(token);
       user.save();
-      const verificationLink = `${process.env.FRONTEND_URL}/user/reset-password?token=${token}`;
+      const verificationLink = `${process.env.FRONTEND_URL}/user/auth/reset-password?token=${token}`;
       const mailoptions = {
         to: user.email,
         subject: "Reset password",
@@ -151,12 +163,19 @@ async function forgotPassword(req, res) {
   } catch (error) {
     res.json({
       success: false,
-      data: { msg: JSON.stringify({ error: error }) },
+      data: {
+        msg: JSON.stringify({
+          success: true,
+          data: {
+            msg: JSON.stringify({err: error}),
+          },
+        }),
+      },
     });
     console.log(error);
   }
 }
-module.exports =  {
+module.exports = {
   signupUser,
   forgotPassword,
   loginUser,

@@ -85,6 +85,11 @@ const activeServiceAndMsgPromise = (serviceId) => {
 
     statusStream.on("error", (error) => {
       console.error("Stream error:", error);
+      Service.findByIdAndUpdate(serviceId,{status:"teminated"}).then(e=>{
+        console.log("service added to terminated on stream err unable to find in cluster")
+      }).catch(e=>{
+        console.log("error in stream erro service update operation")
+      })
 
       if (!resolved) {
         resolved = true;

@@ -1,10 +1,13 @@
 "use client";
-import React, {  useState } from "react";
+import React, { useEffect, useState } from "react";
 import { axiosFetch } from "@/lib/axiosConfig";
 import { showNotification } from "@/lib/Notification";
-function page(props) {
-  const tokenType = props.params.token || "";
-  const token = props.searchParams.token || "";
+import { useParams, useSearchParams } from "next/navigation";
+function page() {
+  const {tokenType}  = useParams()
+  const token  = useSearchParams().get("token")
+
+ 
   if (tokenType === "reset-password") {
     return <ResetPassword token={token} />;
   }
@@ -16,19 +19,25 @@ function page(props) {
     );
   }
 }
-const VerifyEmail = async ({ token }) => {
-  const data = await axiosFetch().post(
-    "/user/verify-user",
-    {
-      token: token,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
+const VerifyEmail =  ({ token }) => {
+  const k = async () => {
+    const data = await axiosFetch().post(
+      "/user/verify-user",
+      {
+        token: token,
       },
-    },
-  );
-  const msg = data.data.data.msg;
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    setMsg(data.data.data.msg);
+  };
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    k();
+  }, [token]);
   return <>{msg}</>;
 };
 const ResetPassword = ({ token }) => {
@@ -49,8 +58,19 @@ const ResetPassword = ({ token }) => {
           headers: {
             "Content-Type": "application/json",
           },
-        },
-      );
+        }
+      ).then(data=>{
+        if(data.data.success ===true){
+           showNotification({ text: data.data.data.msg, color: "green" });
+           window.location.href= "/user/auth?type=0"
+        }else{
+          showNotification({ text: data.data.data.msg, color: "orange" });
+        }
+
+      }).catch(e=>{
+        console.log(e);
+        showNotification({ text: "Internal Server Errror!!", color: "red" });
+      })
     } else {
       showNotification({ text: "Password Must be Same..", color: "red" });
     }
