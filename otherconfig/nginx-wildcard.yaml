@@ -97,7 +97,7 @@ kind: Deployment
 metadata:
   name: nginx-reverse-proxy
 spec:
-  replicas: 3  # Initial number of replicas
+  replicas: 5  # Initial number of replicas
   selector:
     matchLabels:
       app: nginx-reverse-proxy

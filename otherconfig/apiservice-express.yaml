@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: express-app2
+  name: express-app
   labels:
     app: express-app
 spec:
@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: express-app
-          image: anshik12/ideserver:apiservice-0.8
+          image: anshik12/ideserver:apiservice-0.9
+          imagePullPolicy: IfNotPresent 
           ports:
             - containerPort: 8080 # Port your app listens on
           env:
@@ -38,6 +39,8 @@ spec:
               value: "https://iamanshik.online"
             - name: API_SERVICE_PUBLIC_IP
               value: "https://api.iamanshik.online"
+            - name: TIMEOUT_MINUTES
+              value: "300000"
           resources:
             requests:
               cpu: "100m" # Minimum CPU required
