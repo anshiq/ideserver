@@ -52,6 +52,17 @@ data:
         access_log  /var/log/nginx/access.log  incoming;
         error_log   /var/log/nginx/error.log warn;
 
+        # CORS map for allowed origins
+        map $http_origin $cors_allow_origin {
+            default "";
+            "http://localhost:3000" $http_origin;
+            "http://localhost:3001" $http_origin;
+            "https://iamanshik.online" $http_origin;
+            "https://api.iamanshik.online" $http_origin;
+            "~^https?://.*\.iamanshik\.online$" $http_origin;
+            # Add any other domains you need
+        }
+
         server {
             listen 80;
             server_name ~^(?<service>[a-zA-Z0-9-]+)-(?<port>\d+)\.code\.iamanshik\.online$;
@@ -59,9 +70,24 @@ data:
             set $target '';
 
             # Generate unique request ID
-            add_header X-Request-ID $request_id;
+            # Moved inside location block
+
+            # Handle preflight requests
+            if ($request_method = 'OPTIONS') {
+                return 204;
+            }
 
             location / {
+                # Generate unique request ID
+                add_header X-Request-ID $request_id;
+
+                # CORS headers
+                add_header 'Access-Control-Allow-Origin' $cors_allow_origin always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+                add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization' always;
+                add_header 'Access-Control-Allow-Credentials' 'true' always;
+                add_header 'Access-Control-Max-Age' '3600' always;
+
                 access_log /var/log/nginx/proxy.log proxy;
 
                 access_by_lua_block {
@@ -74,6 +100,18 @@ data:
                     else
                         ngx.log(ngx.ERR, "Invalid hostname pattern")
                         ngx.exit(404)
+                    end
+
+                    -- Handle preflight (OPTIONS) requests with CORS headers
+                    if ngx.req.get_method() == "OPTIONS" then
+                        ngx.header["Access-Control-Allow-Origin"] = ngx.var.cors_allow_origin
+                        ngx.header["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+                        ngx.header["Access-Control-Allow-Headers"] = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+                        ngx.header["Access-Control-Allow-Credentials"] = "true"
+                        ngx.header["Access-Control-Max-Age"] = "3600"
+                        ngx.header["Content-Type"] = "text/plain charset=UTF-8"
+                        ngx.header["Content-Length"] = "0"
+                        ngx.exit(204)
                     end
                 }
 
@@ -90,7 +128,7 @@ data:
             }
         }
     }
-
+    
 ---
 apiVersion: apps/v1
 kind: Deployment

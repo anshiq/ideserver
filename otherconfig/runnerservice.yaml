@@ -15,9 +15,10 @@ spec:
       serviceAccountName: default  # Use the default service account
       containers:
         - name: runnerservice
-          image: anshik12/ideserver:runnerservice-0.1
+          image: anshik12/ideserver:runnerservice-0.0.1
           ports:
             - containerPort: 8081
+          command: ["./runnerservice"]
           resources:
             limits:
               cpu: "500m"

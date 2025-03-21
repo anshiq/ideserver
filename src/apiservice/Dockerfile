@@ -8,7 +8,12 @@ WORKDIR /code
 COPY package*.json ./
 
 # Install dependencies
+RUN apk add  make gcc g++ python3
+# to install bcrypt
 RUN npm install --production
+RUN npm rebuild bcrypt -–build-from-source
+# breaking in environment of k8s so building it natively so building it natively
+RUN apk del make gcc g++ python3
 
 # Copy the rest of the application code
 COPY . .
@@ -28,5 +33,5 @@ ENV PORT=8080 \
 # EXPOSE $PORT
 
 # Command to run the application
-CMD ["npm", "run","start"] 
+# CMD ["npm", "run","start"] # will be handled by yaml deployement
 # testing

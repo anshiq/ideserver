@@ -6,6 +6,7 @@ const { Service } = require("../models/containerSchema");
 const { serviceWatcher } = require("./serviceWatcher");
 require("dotenv").config();
 const allowedOrigins = [
+  "https://ideserver-9ykz.vercel.app",
   /\.iamanshik\.online$/, // Matches any subdomain of iamanshik.online
   ...Array.from({ length: 6 }, (_, i) => `http://localhost:${3000 + i}`) // localhost:3000-3005
 ];

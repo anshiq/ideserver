@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: express-app
-          image: anshik12/ideserver:apiservice-0.9
+          image: anshik12/ideserver:apiservice-0.0.1
           imagePullPolicy: IfNotPresent 
           ports:
             - containerPort: 8080 # Port your app listens on
@@ -41,6 +41,7 @@ spec:
               value: "https://api.iamanshik.online"
             - name: TIMEOUT_MINUTES
               value: "300000"
+          command: ["npm","run","start"]
           resources:
             requests:
               cpu: "100m" # Minimum CPU required

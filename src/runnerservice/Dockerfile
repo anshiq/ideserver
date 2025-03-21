@@ -35,4 +35,4 @@ RUN adduser -D appuser
 USER appuser
 
 # Set the entrypoint
-CMD ["./runnerservice"]
+# CMD ["./runnerservice"] # will handle in deloyment.yaml
