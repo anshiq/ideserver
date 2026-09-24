@@ -1,0 +1,19 @@
+#cloud-config
+hostname: a7k2m9xq
+manage_etc_hosts: true
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA user@laptop
+ssh_keys:
+  ed25519_private: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    XYZ
+    -----END OPENSSH PRIVATE KEY-----
+ssh_pwauth: false
+disable_root: true
+growpart:
+  mode: auto

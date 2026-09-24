@@ -1,192 +1,73 @@
-# IDEServer - Cloud IDE Platform
+# VPS Platform (formerly IDEServer)
 
-A cloud-based development environment platform that provides dynamic containerized IDE instances with real-time collaboration capabilities.
+Persistent Linux machines, like AWS EC2, on **one NixOS host with one public IPv4**:
+Ubuntu/Fedora **Incus LXC containers** (see `docs/adr/0005-containers-over-vms.md`
+for why not KVM VMs) that survive reboots, reached over SSH and
+`{id}.vps.{domain}`. The k8s code-server product is **deprecated and deleted**.
 
-## 🏗️ Architecture Overview
-
-IDEServer is built on a microservices architecture running on Kubernetes, featuring dynamic routing, WebSocket communication, and container orchestration.
-
-```mermaid
-graph TB
-    subgraph EdgeLayer["Edge Layer"]
-        LB["Load Balancer Nginx Ingress"]
-        Nginx["Nginx Reverse Proxy<br/>with OpenResty/Lua"]
-    end
-    
-    subgraph ApplicationLayer["Application Layer"]
-        API["API/WebSocket Service<br/>Node.js"]
-        Runner["Runner Service<br/>Go/gRPC"]
-    end
-    
-    subgraph DataLayer["Data Layer"]
-        MongoDB["MongoDB"]
-        Redis["Redis"]
-    end
-    
-    subgraph ContainerRuntime["Container Runtime"]
-        UserContainers["User IDE Containers<br/>Dynamic Spawning"]
-    end
-    
-    LB --> Nginx
-    Nginx --> API
-    API --> MongoDB
-    API --> Redis
-    API --> Runner
-    Runner --> UserContainers
-    UserContainers --> Nginx
-```
-
-## Tech Stack
-
-### Core Technologies
-- **Kubernetes**: Container orchestration and management
-- **Nginx + OpenResty**: Reverse proxy with Lua scripting for dynamic routing
-- **Docker**: Container image building and management
-- **gRPC**: Inter-service communication
-- **WebSocket/Express**: Real-time communication and APIs
-- **Databases**: MongoDB (will use Redis for cache in future)
-
-### Services
-- **API Service**: Node.js backend handling HTTP requests/WebSockets and business logic
-- **Runner Service**: Go service managing container lifecycle via gRPC to connect Express and Go client to communicate with Kubernetes
-- **Frontend (React.js)**: For users to select images, create sandboxed environments, and use the editor with live testing links in the browser
-
-## Project Structure
+## Architecture
 
 ```
-ideserver/
-├── src/
-│   ├── apiservice/          # Node.js API backend
-│   │   ├── Others/
-│   │   │   └── wsHandler.js # WebSocket implementation
-│   │   └── ...
-│   └── runnerservice/       # Go gRPC service
-│       ├── genproto/        # Generated gRPC code
-│       └── ...
-├── otherconfig/
-│   ├── nginx-wildcard.yaml  # Nginx + OpenResty configuration
-│   ├── openrusty.sh         # Legacy Nginx configuration
-│   └── ...
-├── k8s/                     # Kubernetes manifests
-├── Learning.md              # Development notes and concepts
-└── README.md
+Internet → 1× IPv4 (NixOS)
+ :22 → sshgw (Go jump host, ProxyJump + per-VPS fallback port)
+ :80/:443 (+3000,5000,8000,8080) → edge (Go: Host/SNI routing, wildcard TLS)
+ app.{domain} → web (Next.js :13000) + /api → api (Go :8081, huma+chi)
+ api → Postgres 17 (+River jobs) → hostd (Go: Incus socket, reconciler, console)
+ Incus bridge vpsbr0 10.100.0.0/16, ZFS pool, per-NIC ACLs + port isolation
 ```
 
-## Development Setup
+| Binary | Listens | Does | Privilege |
+|---|---|---|---|
+| `cmd/edge` | `:80`,`:443`, extra HTTP | SNI peek, Host routing, wildcard TLS (certmagic DNS-01), firewall for hostname ports | `CAP_NET_BIND_SERVICE` |
+| `cmd/sshgw` | `:22` | Jump host (x/crypto/ssh), ownership + port-22 firewall, E2E to VM sshd | `CAP_NET_BIND_SERVICE` |
+| `cmd/api` | `127.0.0.1:8081` | REST `/api/v1`, GitHub OAuth, SSE, WS console relay. Never touches Incus | none |
+| `cmd/hostd` | `/run/vps/hostd.sock` | River workers, reconciler (Incus events + 60s diff), console bridge, capacity | `incus-admin` |
 
-### Prerequisites
-- Kubernetes cluster (minikube for local development)
-- Docker installed and running
-- Node.js
-- Go
-- MongoDB instance
-- A domain name to execute live sandboxed environments
+Key flows (§1.5): `POST /instances` = one Postgres tx (quota lock, IP + SSH
+fallback port alloc, `pending` row, River job in-tx). Workers converge
+idempotently → `running`. `NOTIFY instance_events` → SSE + route refresh.
 
-### Local Development
+## Layout
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ideserver
-   ```
+```
+cmd/{api,hostd,edge,sshgw}/main.go
+internal/{config,db,auth,api,instances,jobs,incusx,cloudinit,netalloc,routes,edge,sshgw,ids}
+web/                  Next.js dashboard (from src/frontend, rebuilt for instances)
+deploy/nixos/module.nix   services.vps.* (incus preseed, bridge, zfs, postgres, nftables, units)
+deploy/compose.dev.yaml   postgres only
+docs/adr/             0001-incus-over-k8s … 0005-containers-over-vms
+scripts/e2e.sh        end-to-end checklist (plan §6)
+```
 
-2. **Set up Kubernetes cluster**
-   ```bash
-   # Using minikube
-   minikube start
-   ```
+## Quickstart (dev)
 
-3. **Deploy infrastructure**
-   ```bash
-   # Apply Nginx reverse proxy configuration
-   kubectl apply -f otherconfig/nginx-wildcard.yaml
-   ```
-
-4. **Install dependencies**
-   ```bash
-   # API Service
-   cd src/apiservice
-   npm install
-   
-   # Runner Service
-   cd ../runnerservice
-   go mod download
-   ```
-
-5. **Generate gRPC code**
-   ```bash
-   # Use the genproto.sh script
-   ./genproto.sh
-   ```
-
-## Key Components
-
-### Dynamic Routing System
-The Nginx reverse proxy uses OpenResty with Lua scripting to dynamically route requests to user containers based on subdomain patterns:
-
-- Pattern: `{serviceId}-{port}.code.iamanshik.online`
-- Example: `abc123-8080.code.iamanshik.online` → routes to service `abc123` on port `8080`
-
-### WebSocket Service
-Handles real-time communication for:
-- Service status updates
-- Container lifecycle events
-- User activity polling
-
-### Container Management
-- Dynamic container spawning based on user requests
-- Automatic cleanup and resource management
-- Integration with Kubernetes for orchestration
-
-## Contributing
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and test locally
-4. Commit your changes: `git commit -m 'Add amazing feature'`
-5. Push to the branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
-
-### Code Style
-- Follow Go conventions for Go code
-- Use ESLint configuration for JavaScript/Node.js
-- Write meaningful commit messages
-- Add tests for new features
-
-### Testing
 ```bash
-# Run API service tests
-cd src/apiservice
-npm test
-
-# Run Runner service tests
-cd src/runnerservice
-go test ./...
+just deps-up                 # postgres:17 on :5432 (vps/vps)
+export DATABASE_URL="postgres://vps:vps@localhost:5432/vps?sslmode=disable"
+export DOMAIN=example.com GITHUB_CLIENT_ID=… GITHUB_CLIENT_SECRET=… SESSION_SECRET=…
+just migrate                 # goose up (seeds plans + images)
+just dev api                 # or: go run ./cmd/api | hostd | edge | sshgw
+just test                    # go test -race ./...
 ```
 
-## Troubleshooting
+Host install: import `nixosModules.default`, set `services.vps.*` (see
+`deploy/nixos/module.nix`), move admin sshd to **2222 key-only first**, then
+deploy. Wildcard DNS: one A record `*.vps.{domain}` → host IP.
 
-### Common Issues
-- **Container spawning failures**: Check Kubernetes pod logs and resource limits
-- **WebSocket connection issues**: Verify CORS configuration and JWT tokens
-- **Routing problems**: Check Nginx configuration and DNS resolution
+## SSH
 
-### Debugging Commands
-```bash
-# Check pod status
-kubectl get pods -n default
-
-# View Nginx logs
-kubectl logs -f deployment/nginx-reverse-proxy
-
-# Check service endpoints
-kubectl get endpoints
+```
+Host *.vps.example.com
+    ProxyJump vps.example.com
+    User ubuntu   # or fedora
+ssh a7k2m9xq.vps.example.com
+ssh -p 30142 ubuntu@a7k2m9xq.vps.example.com   # fallback
 ```
 
-## 🙏 Acknowledgments
+Host keys are generated per instance (cloud-init) — dashboard shows fingerprints, no TOFU.
 
-- OpenResty team for the excellent Nginx distribution
-- Kubernetes community for container orchestration
+## Docs
 
----
+- `docs/adr/` — the five pivot decisions.
+- `SECURITY.md` — threat model, abuse controls, cookie rules.
+- `scripts/e2e.sh` — §6 verification checklist.
