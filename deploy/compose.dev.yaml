@@ -1,0 +1,21 @@
+# Local dev database only. Redis/MinIO/Mailpit were removed with the k8s
+# product: Postgres LISTEN/NOTIFY + River cover their jobs (plan §2).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: vps
+      POSTGRES_USER: vps
+      POSTGRES_PASSWORD: vps
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vps"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pg_data:

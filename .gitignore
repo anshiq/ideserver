@@ -1,2 +1,12 @@
 *.pem
 .DS_Store
+.env*
+*.key
+*kubeconfig*
+/web/node_modules
+/web/.next
+/bin
+/dist
+*.test
+/var/lib/vps/
+/.agent-runtime/
